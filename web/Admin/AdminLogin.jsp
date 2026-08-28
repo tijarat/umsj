@@ -39,10 +39,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><%= usr %> Login - UMS Online</title>
         <link href="../extra/css/style.css" rel="stylesheet" type="text/css">
-        <script src="../Images/encode.js"></script>
-        <script src="../js/md5.js"></script>
+        <script src="../extra/js/encode.js"></script>
+        <script src="../extra/js/md5.js"></script>
         <script>
-            function preventBack() 
+            function preventBack()
             {
                 window.history.forward();
             }
@@ -50,24 +50,107 @@
             setTimeout(preventBack, 0);
             window.onunload = function () {};
 
-            function chkUsrPass()
+            function setField(name, value)
             {
-                var form = document.adminLoginForm;
-                if (form.adminUser.value.trim() === "" || form.adminPassword.value === "") 
-                {
-                    alert("Please fill in the username and password fields.");
-                    return false;
-                }
-                form.adminPassword.value = Encrypt(form.adminPassword.value);
-                return true;
+                var field = document.adminLoginForm.elements[name];
+                if(field) field.value = value == null ? "" : value;
             }
 
-            function hasInvalidChar(val) 
+            function getBrowserId()
+            {
+                var id = "";
+                try
+                {
+                    id = localStorage.getItem("UMS_BROWSER_ID");
+                    if(!id)
+                    {
+                        id = "UMS-" + new Date().getTime() + "-" + Math.random().toString(36).substring(2, 12);
+                        localStorage.setItem("UMS_BROWSER_ID", id);
+                    }
+                }catch(e)
+                {
+                    id = "UMS-" + new Date().getTime() + "-" + Math.random().toString(36).substring(2, 12);
+                }
+                return id;
+            }
+
+            function getGpuInfo()
+            {
+                try
+                {
+                    var canvas = document.createElement("canvas");
+                    var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+                    if(!gl) return "";
+                    var ext = gl.getExtension("WEBGL_debug_renderer_info");
+                    if(ext) return gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "";
+                    return gl.getParameter(gl.RENDERER) || "";
+                }catch(e)
+                {
+                    return "";
+                }
+            }
+
+            function collectBrowserInfo()
+            {
+                setField("browserId", getBrowserId());
+                setField("browserUserAgent", navigator.userAgent || "");
+                setField("platform", navigator.platform || "");
+                setField("language", navigator.language || "");
+                setField("timezone", Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+                setField("screenWidth", screen.width || "");
+                setField("screenHeight", screen.height || "");
+                setField("cpuCores", navigator.hardwareConcurrency || "");
+                setField("deviceMemory", navigator.deviceMemory || "");
+                setField("gpuInfo", getGpuInfo());
+
+                var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                if(connection)
+                {
+                    setField("networkType", connection.effectiveType || connection.type || "");
+                    setField("networkDownlink", connection.downlink || "");
+                    setField("networkRtt", connection.rtt || "");
+                }
+            }
+
+            function collectClientInfo()
+            {
+                collectBrowserInfo();
+            }
+
+            function submitLogin()
+            {
+                var form = document.adminLoginForm;
+
+                if(form.adminUser.value.trim() === "" || form.adminPassword.value === "")
+                {
+                    alert("Please fill in the username and password fields.");
+                    return;
+                }
+
+                try
+                {
+                    form.adminPassword.value = Encrypt(form.adminPassword.value);
+                }catch(e)
+                {
+                    alert("ENCRYPT ERROR = " + e.message);
+                    return;
+                }
+
+                form.submit();
+            }
+
+            function chkUsrPass()
+            {
+                submitLogin();
+                return false;
+            }
+
+            function hasInvalidChar(val)
             {
                 return val.indexOf("=") >= 0 || val.indexOf("'") >= 0 || val.indexOf("-") >= 0 || val.indexOf("*") >= 0 || val.indexOf("\"") >= 0;
             }
 
-            function MM_callJS(jsStr) 
+            function MM_callJS(jsStr)
             {
                 return eval(jsStr);
             }
@@ -82,7 +165,7 @@
     }else
     {
 %>
-    <body onload="document.adminLoginForm.adminUser.focus();">
+    <body onload="collectClientInfo(); document.adminLoginForm.adminUser.focus();">
 <% 
     }
 %>
@@ -129,6 +212,19 @@
                             <div class="ums-form-group">
                                 <label class="ums-form-label" for="adminPassword">Password</label>
                                 <input type="hidden" name="loginTime">
+                                <input type="hidden" name="browserId">
+                                <input type="hidden" name="browserUserAgent">
+                                <input type="hidden" name="platform">
+                                <input type="hidden" name="language">
+                                <input type="hidden" name="timezone">
+                                <input type="hidden" name="screenWidth">
+                                <input type="hidden" name="screenHeight">
+                                <input type="hidden" name="cpuCores">
+                                <input type="hidden" name="deviceMemory">
+                                <input type="hidden" name="gpuInfo">
+                                <input type="hidden" name="networkType">
+                                <input type="hidden" name="networkDownlink">
+                                <input type="hidden" name="networkRtt">
                                 <input id="adminPassword" name="adminPassword" type="password" tabindex="2" autocomplete="current-password" required>
                             </div>
                             <div class="ums-auth-row">
