@@ -52,11 +52,13 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
 
     public void setWebCtx() throws Exception
     {
-        try(CallableStatement cs = con.prepareCall("{call SET_WEB_CTX(?)}"))
+        try(CallableStatement cs = con.prepareCall("{call SET_WEB_CTX(?, ?)}"))
         {
             cs.setString(1, user);
+            cs.setString(2, ipAddress);
             cs.execute();
         }
+
         try(CallableStatement cs = con.prepareCall("{call dbms_session.SET_IDENTIFIER(?)}"))
         {
             cs.setString(1, user);
