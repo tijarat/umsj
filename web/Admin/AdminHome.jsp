@@ -6,7 +6,7 @@
     }
 %>
 <%
-    com.towertech.ucp.util.AdminSession adminSession = (com.towertech.ucp.util.AdminSession) session.getAttribute("adminSession");
+    com.towertech.UMS.util.AdminSession adminSession = (com.towertech.UMS.util.AdminSession) session.getAttribute("adminSession");
     if(adminSession == null || adminSession.con == null)
     {
         log("Session Not Found", "Invalid");
@@ -24,12 +24,12 @@
     }
 
     String notification = "";
-    String expStatus = com.towertech.ucp.util.GlobalFunctions.passwordExpireStatus( adminSession.con, adminSession.user );
+    String expStatus = com.towertech.UMS.util.GlobalFunctions.passwordExpireStatus( adminSession.con, adminSession.user );
 
     if("EXPIRED".equalsIgnoreCase(expStatus))
         notification = "Change Password";
     else if("WARNING".equalsIgnoreCase(expStatus))
-        notification = com.towertech.ucp.util.GlobalFunctions.passwordExpireRemaningDays( adminSession.con, adminSession.user );
+        notification = com.towertech.UMS.util.GlobalFunctions.passwordExpireRemaningDays( adminSession.con, adminSession.user );
     String emailWarning = "true".equalsIgnoreCase(request.getParameter("emailWarning")) ? "true" : "false";
     String cellWarning = "true".equalsIgnoreCase(request.getParameter("cellWarning")) ? "true" : "false";
     String nicWarning = "true".equalsIgnoreCase(request.getParameter("nicWarning")) ? "true" : "false";

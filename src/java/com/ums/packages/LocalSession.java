@@ -70,7 +70,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         try
         {
             con.setAutoCommit(false);
-            String sql = "SELECT UCP.SEQ_USER_SESSION_ID.NEXTVAL FROM DUAL";
+            String sql = "SELECT UMS.SEQ_USER_SESSION_ID.NEXTVAL FROM DUAL";
             try(Statement st = con.createStatement(); ResultSet rs = st.executeQuery(sql))
             {
                 if(rs.next()) sessionId = rs.getInt(1);
@@ -152,7 +152,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             }
 
             sql =
-                "INSERT INTO UCP.USER_SESSION(USER_SESSION_ID, USER_NME, LOGIN_DTE, IP_ADDRESS) " +
+                "INSERT INTO UMS.USER_SESSION(USER_SESSION_ID, USER_NME, LOGIN_DTE, IP_ADDRESS) " +
                 "VALUES(?, ?, SYSDATE, ?)";
 
             try(PreparedStatement st = con.prepareStatement(sql))
@@ -172,7 +172,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
 
     public void updateUserSession() throws SQLException
     {
-        String sql = "UPDATE UCP.USER_SESSION SET LOGOUT_DTE = SYSDATE WHERE USER_SESSION_ID = ?";
+        String sql = "UPDATE UMS.USER_SESSION SET LOGOUT_DTE = SYSDATE WHERE USER_SESSION_ID = ?";
         try
         {
             con.setAutoCommit(false);
@@ -192,7 +192,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
     public void addLog(String statement) throws SQLException
     {
         String sql =
-            "INSERT INTO UCP.USER_SESSION_DETAIL " +
+            "INSERT INTO UMS.USER_SESSION_DETAIL " +
             "(USER_SESSION_DETAIL_ID, USER_SESSION_ID, USER_ACTION, ACTION_DTE) " +
             "VALUES(SEQ_USER_SESSION_DETAIL_ID.NEXTVAL, ?, ?, SYSDATE)";
         try
@@ -255,7 +255,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
     {
         if(addLogStmt == null) throw new SQLException("Statement cannot be null.");
         String sql =
-            "INSERT INTO UCP.USER_SESSION_DETAIL " +
+            "INSERT INTO UMS.USER_SESSION_DETAIL " +
             "(USER_SESSION_DETAIL_ID, USER_SESSION_ID, USER_ACTION, ACTION_DTE) " +
             "VALUES(SEQ_USER_SESSION_DETAIL_ID.NEXTVAL, ?, ?, SYSDATE)";
         try(PreparedStatement st = addLogStmt.getConnection().prepareStatement(sql))
@@ -276,15 +276,15 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         rights.clear();
         String sql =
             "SELECT INITCAP(RIGHT_NME), USER_RIGHTS_ID " +
-            "FROM UCP.USER_RIGHTS " +
+            "FROM UMS.USER_RIGHTS " +
             "WHERE USER_NME = ? " +
-            "AND RIGHT_NME IN (SELECT RIGHT_NME FROM UCP.ACTIVE_RIGHTS) ";
+            "AND RIGHT_NME IN (SELECT RIGHT_NME FROM UMS.ACTIVE_RIGHTS) ";
         if(Functions.isSuperUser(user, con))
         {
             sql +=
                 "UNION " +
                 "SELECT INITCAP(RIGHT_NME), USER_RIGHTS_ID " +
-                "FROM UCP.USER_RIGHTS " +
+                "FROM UMS.USER_RIGHTS " +
                 "WHERE RIGHT_NME IN ('Active Rights') ";
         }
         sql += "ORDER BY USER_RIGHTS_ID";

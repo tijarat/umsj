@@ -23,8 +23,8 @@ public class Pool implements AutoCloseable
     private int inactiveMinutes = 5;
     private int allowedConnections = 200;
     private int allowedBusyMinutes = 2;
-    public static String fromAddress = "webmaster@ucp.edu.pk";
-    public static String smtpAddress = "mail.ucp.edu.pk";
+    public static String fromAddress = "webmaster@UMS.edu.pk";
+    public static String smtpAddress = "mail.UMS.edu.pk";
     private String currentTerm = "";
     private String workingTerm = "";
     private boolean allowStdLogin = true;
@@ -65,7 +65,7 @@ public class Pool implements AutoCloseable
         if(isBlank(reg) || con == null) return false;
         try
         {
-            return exists(con, "SELECT 1 FROM UCP.STUDENT WHERE REG_NBR = ? AND ROWNUM = 1", reg.trim());
+            return exists(con, "SELECT 1 FROM UMS.STUDENT WHERE REG_NBR = ? AND ROWNUM = 1", reg.trim());
         }catch(SQLException e)
         {
             log("Database error in isValid(String, Connection): " + e.getMessage());
@@ -179,10 +179,10 @@ public class Pool implements AutoCloseable
         if(isBlank(workingFacultyId)) return "Not Found";
 
         String sql =
-            "SELECT TERM_CDE FROM UCP.TERM WHERE START_DTE = (" +
-            "SELECT MAX(START_DTE) FROM UCP.TERM WHERE START_DTE > (" +
-            "SELECT START_DTE FROM UCP.TERM WHERE TERM_CDE = (" +
-            "SELECT TERM_CDE FROM UCP.CURRENT_TERM WHERE FACULTY_ID = ?)))";
+            "SELECT TERM_CDE FROM UMS.TERM WHERE START_DTE = (" +
+            "SELECT MAX(START_DTE) FROM UMS.TERM WHERE START_DTE > (" +
+            "SELECT START_DTE FROM UMS.TERM WHERE TERM_CDE = (" +
+            "SELECT TERM_CDE FROM UMS.CURRENT_TERM WHERE FACULTY_ID = ?)))";
 
         try(Connection con = getConnection())
         {

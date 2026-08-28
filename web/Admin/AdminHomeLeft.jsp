@@ -1,5 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*,java.util.*" pageEncoding="UTF-8" %>
-<jsp:useBean id="pool" scope="application" class="com.towertech.ucp.DB.ConnectionPool"/>
+<jsp:useBean id="pool" scope="application" class="com.towertech.UMS.DB.ConnectionPool"/>
 <%!
     public void log(String message, String user)
     {
@@ -19,7 +19,7 @@
     }
 %>
 <%
-    com.towertech.ucp.util.AdminSession adminSession = (com.towertech.ucp.util.AdminSession) session.getAttribute("adminSession");
+    com.towertech.UMS.util.AdminSession adminSession = (com.towertech.UMS.util.AdminSession) session.getAttribute("adminSession");
     if(adminSession == null || adminSession.con == null)
     {
         log("Session Not Found", "Invalid");
@@ -63,7 +63,7 @@
     {
         String searchQuery =
             "SELECT RIGHT_NME, TARGET, PREFIX_NME || FILE_NME AS FILE_PATH " +
-            "FROM UCP.RIGHTS " +
+            "FROM UMS.RIGHTS " +
             "WHERE UPPER(RIGHT_NME) IN (" + placeholders.toString() + ") " +
             "AND FILE_NME IS NOT NULL " +
             "ORDER BY RIGHT_NME";
@@ -215,8 +215,8 @@
                     "SELECT DISTINCT P.RIGHT_NME AS PARENT_NME, P.ID AS PARENT_ID, " +
                     "P.SORT AS PARENT_SORT, INITCAP(C.RIGHT_NME) AS CHILD_NME, " +
                     "C.PREFIX_NME, C.FILE_NME, C.TARGET, C.SORT AS CHILD_SORT " +
-                    "FROM UCP.RIGHTS C " +
-                    "JOIN UCP.RIGHTS P ON P.ID = C.PARENT_ID " +
+                    "FROM UMS.RIGHTS C " +
+                    "JOIN UMS.RIGHTS P ON P.ID = C.PARENT_ID " +
                     "WHERE UPPER(C.RIGHT_NME) IN (" + placeholders.toString() + ") " +
                     "ORDER BY P.SORT, P.ID, C.SORT";
 

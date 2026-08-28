@@ -244,7 +244,7 @@ public class StudentContainer
             "FROM COURSE C " +
             "JOIN PREREQ P ON P.COURSE_ID = C.COURSE_ID AND P.COURSE_NBR = 1 " +
             "JOIN OFFERED_PROGRAM O ON O.PROG_ID = P.PROG_ID AND O.TERM_CDE = C.TERM_CDE " +
-            "JOIN UCP.BATCH B ON B.PROG_ID = O.PROG_ID AND B.TERM_CDE = O.TERM_CDE " +
+            "JOIN UMS.BATCH B ON B.PROG_ID = O.PROG_ID AND B.TERM_CDE = O.TERM_CDE " +
             "LEFT JOIN SPECIAL_COURSE SC ON SC.COURSE_ID = C.COURSE_ID " +
             "WHERE O.OP_ID = (SELECT OP_ID FROM CANDIDATE WHERE CANDIDATE_ID = ?)";
 
@@ -295,7 +295,7 @@ public class StudentContainer
             "FROM COURSE C " +
             "JOIN PREREQ P ON P.COURSE_ID = C.COURSE_ID AND P.COURSE_NBR = 1 " +
             "JOIN OFFERED_PROGRAM O ON O.PROG_ID = P.PROG_ID AND O.TERM_CDE = C.TERM_CDE " +
-            "JOIN UCP.BATCH B ON B.PROG_ID = O.PROG_ID AND B.TERM_CDE = O.TERM_CDE " +
+            "JOIN UMS.BATCH B ON B.PROG_ID = O.PROG_ID AND B.TERM_CDE = O.TERM_CDE " +
             "LEFT JOIN SPECIAL_COURSE SC ON SC.COURSE_ID = C.COURSE_ID " +
             "WHERE O.OP_ID = (SELECT OP_ID FROM CANDIDATE WHERE CANDIDATE_ID = ?)";
         try(PreparedStatement stmt = con.prepareStatement(courseSql))
@@ -319,7 +319,7 @@ public class StudentContainer
 
         String sectionSql =
             "SELECT S.SECTION_ID " +
-            "FROM UCP.COURSE C, UCP.TEACHER T, UCP.SECTION S, SECTION_FACULTY SF, FACULTY F " +
+            "FROM UMS.COURSE C, UMS.TEACHER T, UMS.SECTION S, SECTION_FACULTY SF, FACULTY F " +
             "WHERE S.COURSE_ID = C.COURSE_ID AND S.TCHR_ID = T.TCHR_ID " +
             "AND S.SECTION_ID = SF.SECTION_ID(+) AND C.TERM_CDE = ? " +
             "AND F.FACULTY_ID IN (SELECT P1.FACULTY_ID FROM CANDIDATE C1, OFFERED_PROGRAM OP1, PROGRAM P1 " +
@@ -329,7 +329,7 @@ public class StudentContainer
             "ORDER BY S.SECTION_ID, C.COURSE_CDE, S.SECTION_TXT";
 
         String insertRegistrationSql = "INSERT INTO NEW_REGISTRATION VALUES(SEQ_NEW_REG_ID.NEXTVAL, ?, ?, ?, 'Y', ?, ?)";
-        String insertFeeSql = "INSERT INTO UCP.CANDIDATE_FEE VALUES(?, ?, ?, ?)";
+        String insertFeeSql = "INSERT INTO UMS.CANDIDATE_FEE VALUES(?, ?, ?, ?)";
         int totalRegisteredCourses = 0;
         try(PreparedStatement sectionStmt = con.prepareStatement(sectionSql); PreparedStatement insertRegistrationStmt = con.prepareStatement(insertRegistrationSql); PreparedStatement insertFeeStmt = con.prepareStatement(insertFeeSql))
         {
@@ -384,7 +384,7 @@ public class StudentContainer
             "AND O.TERM_CDE = C.TERM_CDE AND O.PROG_ID = P.PROG_ID " +
             "AND O.OP_ID = (SELECT OP_ID FROM CANDIDATE WHERE CANDIDATE_ID = ?)";
         String sectionSql =
-            "SELECT S.SECTION_ID FROM UCP.COURSE C, UCP.TEACHER T, UCP.SECTION S, SECTION_FACULTY SF, FACULTY F " +
+            "SELECT S.SECTION_ID FROM UMS.COURSE C, UMS.TEACHER T, UMS.SECTION S, SECTION_FACULTY SF, FACULTY F " +
             "WHERE S.COURSE_ID = C.COURSE_ID AND S.TCHR_ID = T.TCHR_ID AND S.SECTION_ID = SF.SECTION_ID(+) " +
             "AND C.TERM_CDE = ? AND F.FACULTY_ID IN (SELECT P1.FACULTY_ID FROM CANDIDATE C1, OFFERED_PROGRAM OP1, PROGRAM P1 " +
             "WHERE C1.OP_ID = OP1.OP_ID AND OP1.PROG_ID = P1.PROG_ID AND C1.CANDIDATE_ID = ?) " +
@@ -494,7 +494,7 @@ public class StudentContainer
         if(reg == null || !visited.add(reg)) return;
         try
         {
-            String oldReg = queryString(con, "SELECT OLD_REG_NBR FROM UCP.EXSTUDENT WHERE NEW_REG_NBR = ?", reg);
+            String oldReg = queryString(con, "SELECT OLD_REG_NBR FROM UMS.EXSTUDENT WHERE NEW_REG_NBR = ?", reg);
             if(oldReg == null || oldReg.isEmpty()) return;
             loadOldRegNbrs(oldReg, con, data, visited);
             if(!data.contains(oldReg)) data.add(oldReg);
@@ -506,7 +506,7 @@ public class StudentContainer
 
     public void getOldMajor(String reg, Connection con, List<String> data) throws Exception
     {
-        String sql = "SELECT COURSE_PROG_ID FROM UCP.STUDENT WHERE REG_NBR = ?";
+        String sql = "SELECT COURSE_PROG_ID FROM UMS.STUDENT WHERE REG_NBR = ?";
         try(PreparedStatement stmt = con.prepareStatement(sql))
         {
             for(String oldReg : oldRegNbrs)
@@ -529,7 +529,7 @@ public class StudentContainer
         try
         {
             return queryInt(con, 0,
-                "SELECT COUNT(C.COURSE_CDE) FROM UCP.COURSE C, UCP.SECTION S, UCP.REGISTRATION R " +
+                "SELECT COUNT(C.COURSE_CDE) FROM UMS.COURSE C, UMS.SECTION S, UMS.REGISTRATION R " +
                 "WHERE C.COURSE_ID = S.COURSE_ID AND S.SECTION_ID = R.SECTION_ID " +
                 "AND R.REG_NBR = ? AND R.STATUS_TYP = 'Y' AND R.TERM_CDE = ?",
                 regNbr, currentTerm);
@@ -542,7 +542,7 @@ public class StudentContainer
 
     public boolean getDuesDefaulterResult(Connection con) throws Exception
     {
-        return exists(con,"SELECT 1 FROM UCP.DUES_DEFAULTER WHERE REG_NBR = ? AND TERM_CDE = ?", regNbr, workingTerm);
+        return exists(con,"SELECT 1 FROM UMS.DUES_DEFAULTER WHERE REG_NBR = ? AND TERM_CDE = ?", regNbr, workingTerm);
     }
 
     public int getTotalCreditEarned(Connection con) throws Exception
@@ -622,12 +622,12 @@ public class StudentContainer
             "S.L_ADDRESS3_TXT, S.L_CITY_NME, S.L_PHONE_NBR, S.P_PHONE_NBR, S.GENDER_IND, S.COURSE_PROG_ID, " +
             "P.PROG_ID, NVL(S.NIC,'') NIC, NVL(S.FATHER_NIC,'') FNIC, NVL(S.FATHER_NTN,'') FNTN, " +
             "(SELECT MOBILE_NBR FROM STUDENT_MOBILE WHERE REG_NBR = S.REG_NBR) MOB_NBR, S.UNI_REG, S.PWWF_IND, " +
-            "NVL((SELECT TO_CHAR(MIN(A1.PAID_DTE),'DD Mon, RRRR') FROM UCP.ACCOUNTS A1 WHERE A1.REG_NBR = S.REG_NBR),'-') REGISTRATION_DATE, " +
+            "NVL((SELECT TO_CHAR(MIN(A1.PAID_DTE),'DD Mon, RRRR') FROM UMS.ACCOUNTS A1 WHERE A1.REG_NBR = S.REG_NBR),'-') REGISTRATION_DATE, " +
             "SP.SPECIALIZATION_ABBREV " +
-            "FROM UCP.STUDENT S, UCP.PROGRAM P, UCP.PROGRAM CP, UCP.BATCH B, UCP.REGISTRATION_SCHEDULE RS, UCP.SPECIALIZATION SP " +
+            "FROM UMS.STUDENT S, UMS.PROGRAM P, UMS.PROGRAM CP, UMS.BATCH B, UMS.REGISTRATION_SCHEDULE RS, UMS.SPECIALIZATION SP " +
             "WHERE S.REG_NBR = ? AND S.PROG_ID = P.PROG_ID AND P.PROG_ID = B.PROG_ID AND S.SP_ID = SP.SP_ID(+) " +
             "AND S.COURSE_PROG_ID = CP.PROG_ID AND B.TERM_CDE = ? AND B.BATCH_ID = RS.BATCH_ID " +
-            "AND RS.REG_DTE = (SELECT MAX(REG_DTE) FROM UCP.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID)";
+            "AND RS.REG_DTE = (SELECT MAX(REG_DTE) FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID)";
 
         try(PreparedStatement stmt = con.prepareStatement(studentSql))
         {
@@ -666,7 +666,7 @@ public class StudentContainer
         }
 
         List<int[]> amounts = new ArrayList<>();
-        try(PreparedStatement stmt = con.prepareStatement("SELECT CREDIT_HRS, PER_COURSE_AMT FROM UCP.BATCH_FEE WHERE BATCH_ID = ? ORDER BY CREDIT_HRS"))
+        try(PreparedStatement stmt = con.prepareStatement("SELECT CREDIT_HRS, PER_COURSE_AMT FROM UMS.BATCH_FEE WHERE BATCH_ID = ? ORDER BY CREDIT_HRS"))
         {
             stmt.setInt(1, stdBatchId);
             try(ResultSet rs = stmt.executeQuery())
@@ -691,7 +691,7 @@ public class StudentContainer
             }
         }
 
-        String requirementSql = "SELECT COURSE_LIMIT_L1, COURSE_LIMIT_L2 FROM UCP.BATCH_REQUIREMENT WHERE BATCH_ID = ?";
+        String requirementSql = "SELECT COURSE_LIMIT_L1, COURSE_LIMIT_L2 FROM UMS.BATCH_REQUIREMENT WHERE BATCH_ID = ?";
         try(PreparedStatement stmt = con.prepareStatement(requirementSql))
         {
             stmt.setInt(1, stdBatchId);
@@ -708,7 +708,7 @@ public class StudentContainer
     public boolean isAlreadyAddDrop(Connection con) throws SQLException
     {
         if(lastEvent >= 3) return true;
-        return exists(con, "SELECT 1 FROM UCP.DROPPED_COURSE WHERE REG_NBR = ? AND TERM_CDE = ?", regNbr, workingTerm);
+        return exists(con, "SELECT 1 FROM UMS.DROPPED_COURSE WHERE REG_NBR = ? AND TERM_CDE = ?", regNbr, workingTerm);
     }
 
     public boolean getConsecutiveCGPAResult(Connection con) throws Exception
@@ -739,7 +739,7 @@ public class StudentContainer
     {
         String sql =
             "SELECT NVL(ROUND(SUM(GP.GP * C.COURSECREDITS), 2), 0), NVL(SUM(C.COURSECREDITS), 0) " +
-            "FROM GRADES G, UCP.GRADE_KEY GP, HISTADMINISTRATOR.COURSES C " +
+            "FROM GRADES G, UMS.GRADE_KEY GP, HISTADMINISTRATOR.COURSES C " +
             "WHERE G.REG = ? AND G.GRADE = GP.LETTER_GRADE AND G.GRADE NOT IN('I','W','RA','TR','N') " +
             "AND G.GRADE NOT LIKE '%(%)%' AND C.COURSEID = G.COURSEID " +
             "AND SUBSTR(C.COURSEID, LENGTH(C.COURSEID)-3, 1) IN('5','6') " +
@@ -767,8 +767,8 @@ public class StudentContainer
     public int getLastEvent(Connection con) throws Exception
     {
         String sql =
-            "SELECT EVENT_NBR, PAID_DTE FROM UCP.ACCOUNTS WHERE REG_NBR = ? AND TERM_CDE = ? " +
-            "AND EVENT_NBR = (SELECT NVL(MAX(EVENT_NBR),0) FROM UCP.ACCOUNTS WHERE REG_NBR = ? AND TERM_CDE = ?)";
+            "SELECT EVENT_NBR, PAID_DTE FROM UMS.ACCOUNTS WHERE REG_NBR = ? AND TERM_CDE = ? " +
+            "AND EVENT_NBR = (SELECT NVL(MAX(EVENT_NBR),0) FROM UMS.ACCOUNTS WHERE REG_NBR = ? AND TERM_CDE = ?)";
 
         try(PreparedStatement stmt = con.prepareStatement(sql))
         {
@@ -816,7 +816,7 @@ public class StudentContainer
         StringBuilder sql = new StringBuilder(
             "SELECT COUNT(*) FROM (" +
             "SELECT DISTINCT C.COURSE_CDE, C.TYP_IND, P.COURSE_NBR " +
-            "FROM UCP.PREREQ P, UCP.COURSE C, UCP.SECTION S, UCP.SLOT SL, UCP.TIME_TABLE T, UCP.SECTION_PROGRAM SP " +
+            "FROM UMS.PREREQ P, UMS.COURSE C, UMS.SECTION S, UMS.SLOT SL, UMS.TIME_TABLE T, UMS.SECTION_PROGRAM SP " +
             "WHERE C.COURSE_ID = P.COURSE_ID AND SP.SECTION_ID = S.SECTION_ID AND C.COURSE_ID = S.COURSE_ID " +
             "AND S.SECTION_ID = T.SECTION_ID AND T.SLOT_ID = SL.SLOT_ID AND SP.PROG_ID = ? AND SP.PROG_ID = P.PROG_ID " +
             "AND C.TERM_CDE = ? AND C.COURSE_CDE NOT IN (" +
@@ -826,7 +826,7 @@ public class StudentContainer
         if(includeCurrentRegistration)
         {
             sql.append(
-                "UNION SELECT C2.COURSE_CDE FROM UCP.COURSE C2, UCP.SECTION S2, UCP.REGISTRATION R2 " +
+                "UNION SELECT C2.COURSE_CDE FROM UMS.COURSE C2, UMS.SECTION S2, UMS.REGISTRATION R2 " +
                 "WHERE C2.COURSE_ID = S2.COURSE_ID AND S2.SECTION_ID = R2.SECTION_ID " +
                 "AND R2.REG_NBR IN " + regList + " AND R2.TERM_CDE = ? "
             );
@@ -874,7 +874,7 @@ public class StudentContainer
     {
         String sql =
             "SELECT (SELECT COUNT(DISTINCT TERM) FROM COR_GRADES WHERE REG = ?) + " +
-            "(SELECT COUNT(DISTINCT TERM_CDE) FROM UCP.REGISTRATION WHERE TERM_CDE = ? AND REG_NBR = ?) FROM DUAL";
+            "(SELECT COUNT(DISTINCT TERM_CDE) FROM UMS.REGISTRATION WHERE TERM_CDE = ? AND REG_NBR = ?) FROM DUAL";
 
         int result = queryInt(con, 0, sql, regNbr, currentTerm, regNbr) + 1;
         int count = countAvailableCourses(con, result, true);
@@ -995,7 +995,7 @@ public class StudentContainer
     public void setCmpId(Connection con) throws Exception
     {
         String sql =
-            "SELECT C.CMP_ID, C.UNI_ID FROM STUDENT S, PROGRAM P, FACULTY F, UCP.CAMPUS C " +
+            "SELECT C.CMP_ID, C.UNI_ID FROM STUDENT S, PROGRAM P, FACULTY F, UMS.CAMPUS C " +
             "WHERE F.CMP_ID = C.CMP_ID AND S.PROG_ID = P.PROG_ID AND P.FACULTY_ID = F.FACULTY_ID " +
             "AND S.REG_NBR = ?";
 
@@ -1111,8 +1111,8 @@ public class StudentContainer
             String encryptedPassword = passwordSecurity.encrypt(newPassword);
             String doubleEncryptedPassword = passwordSecurity.encrypt(encryptedPassword);
 
-            try(PreparedStatement passwordStmt = con.prepareStatement("INSERT INTO UCP.PASSWORDS VALUES(?, ?)");
-                PreparedStatement newPasswordStmt = con.prepareStatement("INSERT INTO UCP.NEW_PASSWORDS VALUES(?, ?)"))
+            try(PreparedStatement passwordStmt = con.prepareStatement("INSERT INTO UMS.PASSWORDS VALUES(?, ?)");
+                PreparedStatement newPasswordStmt = con.prepareStatement("INSERT INTO UMS.NEW_PASSWORDS VALUES(?, ?)"))
             {
                 bind(passwordStmt, newRegNbr, doubleEncryptedPassword);
                 passwordStmt.executeUpdate();

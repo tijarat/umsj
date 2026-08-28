@@ -291,13 +291,13 @@ public class ReserveSection
 
         String sql =
             "SELECT COUNT(DISTINCT T.SECTION_ID) " +
-            "FROM UCP.TIME_TABLE T " +
-            "JOIN UCP.SLOT S ON S.SLOT_ID = T.SLOT_ID " +
+            "FROM UMS.TIME_TABLE T " +
+            "JOIN UMS.SLOT S ON S.SLOT_ID = T.SLOT_ID " +
             "WHERE T.SECTION_ID = ? " +
             "AND S.TERM_CDE = ? " +
             "AND (T.DAY_ID || '-' || T.SLOT_ID) IN (" +
             "    SELECT DAY_ID || '-' || SLOT_ID " +
-            "    FROM UCP.TIME_TABLE " +
+            "    FROM UMS.TIME_TABLE " +
             "    WHERE SECTION_ID = ?" +
             ")";
 

@@ -1,6 +1,6 @@
-<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*,com.towertech.ucp.util.*" pageEncoding="UTF-8" %>
-<jsp:useBean id="pool" scope="application" class="com.towertech.ucp.DB.ConnectionPool"/>
-<jsp:useBean id="sections" scope="application" class="com.towertech.ucp.util.SectionContainer"/>
+<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*,com.towertech.UMS.util.*" pageEncoding="UTF-8" %>
+<jsp:useBean id="pool" scope="application" class="com.towertech.UMS.DB.ConnectionPool"/>
+<jsp:useBean id="sections" scope="application" class="com.towertech.UMS.util.SectionContainer"/>
 <%!
     public void log(String message, String user)
     {
@@ -14,7 +14,7 @@
     }
 %>
 <%
-    com.towertech.ucp.util.AdminSession adminSession = (com.towertech.ucp.util.AdminSession) session.getAttribute("adminSession");
+    com.towertech.UMS.util.AdminSession adminSession = (com.towertech.UMS.util.AdminSession) session.getAttribute("adminSession");
     if(adminSession == null || adminSession.con == null)
     {
         log("Session Not Found", "Invalid");
@@ -37,9 +37,9 @@
         if(studentDetail != null)
         {
 %>
-            <jsp:useBean id="userContainer" scope="application" class="com.towertech.ucp.util.UserContainer"/>
-            <jsp:useBean id="adminSectionList" scope="session" class="com.towertech.ucp.util.AdminReserveSections"/>
-            <jsp:useBean id="AddDropAdminSectionList" scope="session" class="com.towertech.ucp.util.AdminAddDropReserveSections"/>
+            <jsp:useBean id="userContainer" scope="application" class="com.towertech.UMS.util.UserContainer"/>
+            <jsp:useBean id="adminSectionList" scope="session" class="com.towertech.UMS.util.AdminReserveSections"/>
+            <jsp:useBean id="AddDropAdminSectionList" scope="session" class="com.towertech.UMS.util.AdminAddDropReserveSections"/>
 <%
             userContainer.removeUser(studentDetail.regNbr);
             session.removeAttribute("currentStudent");
@@ -67,7 +67,7 @@
     if(!currentTerm.equals(workingTerm))
     {
 %>
-        <jsp:useBean id="workingSections" scope="application" class="com.towertech.ucp.util.SectionContainer"/>
+        <jsp:useBean id="workingSections" scope="application" class="com.towertech.UMS.util.SectionContainer"/>
 <%
         workingSections.populateSectionContainer(adminSession.con, workingTerm);
     }
@@ -101,8 +101,8 @@
                     "FROM WEB_USERS_FACULTY WUF " +
                     "JOIN FACULTY F ON F.FACULTY_ID = WUF.FACULTY_ID " +
                     "JOIN CAMPUS C ON C.CMP_ID = F.CMP_ID " +
-                    "JOIN UCP.UNIVERSITY U ON U.UNI_ID = C.UNI_ID " +
-                    "JOIN UCP.CITY CT ON CT.CITY_ID = C.CITY_ID " +
+                    "JOIN UMS.UNIVERSITY U ON U.UNI_ID = C.UNI_ID " +
+                    "JOIN UMS.CITY CT ON CT.CITY_ID = C.CITY_ID " +
                     "WHERE WUF.USER_NME = ? " +
                     "AND F.ACTIVE_STATUS = 'Y' " +
                     "ORDER BY C.CMP_ABBERV, U.UNI_ABBREV, F.FACULTY_ABBREV";
@@ -159,16 +159,16 @@
                         "WHERE CR.FACULTY_ID = ? " +
                         "UNION " +
                         "SELECT T.TERM_CDE " +
-                        "FROM UCP.TERM T " +
-                        "JOIN UCP.USER_TERM_ALLOCATION UTA ON UTA.TERM_CDE = T.TERM_CDE " +
+                        "FROM UMS.TERM T " +
+                        "JOIN UMS.USER_TERM_ALLOCATION UTA ON UTA.TERM_CDE = T.TERM_CDE " +
                         "WHERE UTA.FACULTY_ID = ? " +
                         "AND UTA.FRM_DTE <= SYSDATE " +
                         "AND UTA.TO_DTE >= SYSDATE " +
                         "AND UPPER(UTA.USER_NME) = ? " +
                         "UNION " +
                         "SELECT T.TERM_CDE " +
-                        "FROM UCP.TERM T " +
-                        "JOIN UCP.USER_TERM_ALLOCATION UTA ON UTA.TERM_CDE = T.TERM_CDE " +
+                        "FROM UMS.TERM T " +
+                        "JOIN UMS.USER_TERM_ALLOCATION UTA ON UTA.TERM_CDE = T.TERM_CDE " +
                         "WHERE UTA.FACULTY_ID = ? " +
                         "AND UTA.FRM_DTE IS NULL " +
                         "AND UTA.TO_DTE IS NULL " +

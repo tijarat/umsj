@@ -32,7 +32,7 @@ public class Security
     public void logWrongAttempt(Connection con,HttpServletRequest req,String usr,String pass,String type,String status)
     {
         if(con == null) return;
-        String sql = "INSERT INTO UCP.WRONG_ATTEMPTS VALUES(SYSDATE,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO UMS.WRONG_ATTEMPTS VALUES(SYSDATE,?,?,?,?,?,?,?)";
         try(PreparedStatement ps = con.prepareStatement(sql))
         {
             ps.setString(1,nvl(usr));
@@ -138,7 +138,7 @@ public class Security
             return false;
         }
 
-        boolean newPasswordUser = exists(con,"SELECT 1 FROM UCP.NEW_WEB_USERS WHERE USER_NME = ?",user);
+        boolean newPasswordUser = exists(con,"SELECT 1 FROM UMS.NEW_WEB_USERS WHERE USER_NME = ?",user);
         String databasePassword;
         if(newPasswordUser)
         {
@@ -153,12 +153,12 @@ public class Security
         if(newPasswordUser)
         {
             sql = "SELECT U.ACTIVE_IND_TYPE,U.USER_CLASS_IND,U.USER_NME,NU.USER_PASSWORD " +
-                  "FROM UCP.WEB_USERS U JOIN UCP.NEW_WEB_USERS NU ON NU.USER_NME = U.USER_NME " +
+                  "FROM UMS.WEB_USERS U JOIN UMS.NEW_WEB_USERS NU ON NU.USER_NME = U.USER_NME " +
                   "WHERE U.USER_NME = ? AND NU.USER_PASSWORD = ?";
         }else
         {
             sql = "SELECT ACTIVE_IND_TYPE,USER_CLASS_IND,USER_NME,USER_PASSWORD " +
-                  "FROM UCP.WEB_USERS WHERE USER_NME = ? AND USER_PASSWORD = ?";
+                  "FROM UMS.WEB_USERS WHERE USER_NME = ? AND USER_PASSWORD = ?";
         }
 
         try(PreparedStatement ps = con.prepareStatement(sql))
@@ -193,7 +193,7 @@ public class Security
             logWrongAttempt(con,req,user,"",STUDENT_MODE,STATUS_FAIL);
             return false;
         }
-        if(exists(con,"SELECT 1 FROM UCP.PASSWORDS WHERE REG_NBR = ? AND PASSWORD_TXT = ?",user,password)) return true;
+        if(exists(con,"SELECT 1 FROM UMS.PASSWORDS WHERE REG_NBR = ? AND PASSWORD_TXT = ?",user,password)) return true;
         errorMessage = "Invalid Username/Password";
         logWrongAttempt(con,req,user,"",STUDENT_MODE,STATUS_FAIL);
         blockStudentAfterRepeatedFailures(con,user);
@@ -209,11 +209,11 @@ public class Security
 
     private void blockStudentAfterRepeatedFailures(Connection con,String user) throws SQLException
     {
-        String countSql ="SELECT COUNT(*) FROM UCP.WRONG_ATTEMPTS " +
+        String countSql ="SELECT COUNT(*) FROM UMS.WRONG_ATTEMPTS " +
             "WHERE STATUS = 'Fail' " +
             "AND USER_NME = ? " +
             "AND DTE >= SYSDATE-(?/1440) " +
-            "AND DTE > NVL((SELECT MAX(LOGIN_DTE) FROM UCP.USER_SESSION WHERE USER_NME = ? AND LOGIN_DTE >= SYSDATE-(?/1440)),SYSDATE-(?/1440))";
+            "AND DTE > NVL((SELECT MAX(LOGIN_DTE) FROM UMS.USER_SESSION WHERE USER_NME = ? AND LOGIN_DTE >= SYSDATE-(?/1440)),SYSDATE-(?/1440))";
 
         int attemptCount = 0;
         try(PreparedStatement ps = con.prepareStatement(countSql))
@@ -233,9 +233,9 @@ public class Security
         if(attemptCount <= MAX_WRONG_ATTEMPTS) return;
         errorMessage = "Your account has been blocked due to excessive wrong attempts.";
 
-        String blockSql ="INSERT INTO UCP.USER_BLOCK_LIST (USER_NME,MESSAGE) " +
+        String blockSql ="INSERT INTO UMS.USER_BLOCK_LIST (USER_NME,MESSAGE) " +
             "SELECT ?,? FROM DUAL " +
-            "WHERE NOT EXISTS (SELECT 1 FROM UCP.USER_BLOCK_LIST WHERE USER_NME = ?)";
+            "WHERE NOT EXISTS (SELECT 1 FROM UMS.USER_BLOCK_LIST WHERE USER_NME = ?)";
         try(PreparedStatement ps = con.prepareStatement(blockSql))
         {
             ps.setString(1,user);
@@ -290,11 +290,11 @@ public class Security
         {
             String sql =
                 "SELECT 1 " +
-                "FROM UCP.SECTION S " +
-                "JOIN UCP.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
-                "JOIN UCP.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
-                "JOIN UCP.SECTION_FACULTY SF ON SF.SECTION_ID = S.SECTION_ID " +
-                "WHERE SF.FACULTY_ID IN (SELECT FACULTY_ID FROM UCP.WEB_USERS_FACULTY WHERE USER_NME = ?) " +
+                "FROM UMS.SECTION S " +
+                "JOIN UMS.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
+                "JOIN UMS.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
+                "JOIN UMS.SECTION_FACULTY SF ON SF.SECTION_ID = S.SECTION_ID " +
+                "WHERE SF.FACULTY_ID IN (SELECT FACULTY_ID FROM UMS.WEB_USERS_FACULTY WHERE USER_NME = ?) " +
                 "AND T.STATUS_IND = 'A' AND S.SECTION_ID = ?";
 
             return exists(con,sql,userName,Long.valueOf(sectionIdValue));
@@ -302,19 +302,19 @@ public class Security
 
         String sql =
             "SELECT S.SECTION_ID " +
-            "FROM UCP.SECTION S " +
-            "JOIN UCP.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
-            "JOIN UCP.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
-            "JOIN UCP.WEB_USERS W ON W.TCHR_ID = T.TCHR_ID " +
+            "FROM UMS.SECTION S " +
+            "JOIN UMS.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
+            "JOIN UMS.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
+            "JOIN UMS.WEB_USERS W ON W.TCHR_ID = T.TCHR_ID " +
             "WHERE T.STATUS_IND = 'A' " +
-            "AND S.TCHR_ID = (SELECT TCHR_ID FROM UCP.SECTION WHERE SECTION_ID = ?) " +
+            "AND S.TCHR_ID = (SELECT TCHR_ID FROM UMS.SECTION WHERE SECTION_ID = ?) " +
             "AND S.SECTION_ID = ? AND W.USER_NME = ? " +
             "UNION " +
             "SELECT S.SECTION_ID " +
-            "FROM UCP.SECTION S " +
-            "JOIN UCP.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
-            "JOIN UCP.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
-            "JOIN UCP.USER_ALLOWED_SECTIONS UAS ON UAS.SECTION_ID = S.SECTION_ID " +
+            "FROM UMS.SECTION S " +
+            "JOIN UMS.COURSE C ON C.COURSE_ID = S.COURSE_ID " +
+            "JOIN UMS.TEACHER T ON T.TCHR_ID = S.TCHR_ID " +
+            "JOIN UMS.USER_ALLOWED_SECTIONS UAS ON UAS.SECTION_ID = S.SECTION_ID " +
             "WHERE UAS.CLASS_ACT_IND = 'Y' AND T.STATUS_IND = 'A' " +
             "AND UAS.USER_NME = ? AND S.SECTION_ID = ?";
         return exists(con,sql,Long.valueOf(sectionIdValue),Long.valueOf(sectionIdValue),userName,userName,Long.valueOf(sectionIdValue));

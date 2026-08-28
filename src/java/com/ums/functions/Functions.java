@@ -227,7 +227,7 @@ public class Functions
 
     private static void throwFeeNotFound(Connection con, long courseId) throws Exception
     {
-        String sql = "SELECT CREDIT_HRS, COURSE_CDE FROM UCP.COURSE WHERE COURSE_ID = ?";
+        String sql = "SELECT CREDIT_HRS, COURSE_CDE FROM UMS.COURSE WHERE COURSE_ID = ?";
         try(PreparedStatement stmt = con.prepareStatement(sql))
         {
             stmt.setLong(1, courseId);
@@ -262,17 +262,17 @@ public class Functions
     {
         String sql =
             "SELECT 1 FROM DUAL WHERE EXISTS (" +
-            "SELECT 1 FROM UCP.ACCOUNTS WHERE REG_NBR = ? AND PAID_DTE IS NULL) " +
-            "OR EXISTS (SELECT 1 FROM UCP.INSTALLMENT WHERE REG_NBR = ? AND STATUS <> 'PAID' AND PAIDDATE IS NULL)";
+            "SELECT 1 FROM UMS.ACCOUNTS WHERE REG_NBR = ? AND PAID_DTE IS NULL) " +
+            "OR EXISTS (SELECT 1 FROM UMS.INSTALLMENT WHERE REG_NBR = ? AND STATUS <> 'PAID' AND PAIDDATE IS NULL)";
         return exists(con, sql, regNbr, regNbr);
     }
     
     public static boolean isStdFailedFinalExam(String regNbr, String sectionId, Connection con) throws Exception
     {
         String sql =
-            "SELECT 1 FROM UCP.EXAM_RESULT ER " +
-            "JOIN UCP.EXAM E ON E.EXAM_ID = ER.EXAM_ID " +
-            "JOIN UCP.EXAM_TYPE ET ON ET.EXAM_TYP_ID = E.EXAM_TYP_ID " +
+            "SELECT 1 FROM UMS.EXAM_RESULT ER " +
+            "JOIN UMS.EXAM E ON E.EXAM_ID = ER.EXAM_ID " +
+            "JOIN UMS.EXAM_TYPE ET ON ET.EXAM_TYP_ID = E.EXAM_TYP_ID " +
             "WHERE ER.REG_NBR = ? " +
             "AND NVL(E.EXCLUDE_IND, 'N') <> 'Y' " +
             "AND UPPER(ET.EXAM_TYP_NME) = 'FINAL TERM' " +
@@ -368,7 +368,7 @@ public class Functions
         Integer previousODValue = queryInteger(con, "SELECT AMOUNT FROM EXCESSPAID WHERE REG = ? AND TERM = ?", regNbr, stdPrevTerm);
         if(previousODValue == null)
             previousODValue = queryInteger(con,
-                "SELECT AMOUNT FROM EXCESSPAID WHERE REG IN (SELECT OLD_REG FROM UCP.STD_TRANSFER WHERE NEW_REG = ?) AND TERM = ?",
+                "SELECT AMOUNT FROM EXCESSPAID WHERE REG IN (SELECT OLD_REG FROM UMS.STD_TRANSFER WHERE NEW_REG = ?) AND TERM = ?",
                 regNbr, stdPrevTerm);
         int previousOD = intValue(previousODValue);
 
@@ -422,10 +422,10 @@ public class Functions
             "(SELECT NVL(SUM(FEE_AMT),0) DUE_AFTER_DISCOUNT FROM WITHDRAW WHERE REG_NBR = ? AND TERM_CDE = ?) W, " +
             "(SELECT NVL(SUM(CONCESSION),0) CONCESSION FROM ACCOUNTS WHERE REG_NBR = ? AND TERM_CDE = ?) A, " +
             "(SELECT CASE WHEN SUBSTR(S.REG_NBR,3,3) = ? THEN RS.ADMIN_FEE_AMT - (RS.ADMIN_FEE_AMT * (NVL(DT.ADPERCENTS,0) / 100)) ELSE 0 END NET_AMOUNT " +
-            "FROM UCP.STUDENT S JOIN UCP.PROGRAM P ON S.PROG_ID = P.PROG_ID JOIN UCP.BATCH B ON P.PROG_ID = B.PROG_ID " +
-            "JOIN UCP.REGISTRATION_SCHEDULE RS ON B.BATCH_ID = RS.BATCH_ID AND B.TERM_CDE = RS.TERM_CDE " +
-            "LEFT JOIN UCP.DISCOUNTS D ON S.REG_NBR = D.REG_NBR AND D.TERM_CDE = ? " +
-            "LEFT JOIN UCP.DISCOUNT_TYPE DT ON D.DISC_TYPE_ID = DT.DISCID " +
+            "FROM UMS.STUDENT S JOIN UMS.PROGRAM P ON S.PROG_ID = P.PROG_ID JOIN UMS.BATCH B ON P.PROG_ID = B.PROG_ID " +
+            "JOIN UMS.REGISTRATION_SCHEDULE RS ON B.BATCH_ID = RS.BATCH_ID AND B.TERM_CDE = RS.TERM_CDE " +
+            "LEFT JOIN UMS.DISCOUNTS D ON S.REG_NBR = D.REG_NBR AND D.TERM_CDE = ? " +
+            "LEFT JOIN UMS.DISCOUNT_TYPE DT ON D.DISC_TYPE_ID = DT.DISCID " +
             "WHERE S.REG_NBR = ? AND SUBSTR(S.REG_NBR,3,3) = B.TERM_CDE) AD";
         int prevDueAmt = intValue(queryInteger(con, prevDueSql,
             regNbr, stdPrevTerm, regNbr, stdPrevTerm, regNbr, stdPrevTerm,
@@ -439,7 +439,7 @@ public class Functions
 
     public static int getCreditHours(String courseCode, String term, Connection con) throws Exception
     {
-        String sql = "SELECT CREDIT_HRS FROM UCP.COURSE WHERE UPPER(COURSE_CDE) = ? AND TERM_CDE = ?";
+        String sql = "SELECT CREDIT_HRS FROM UMS.COURSE WHERE UPPER(COURSE_CDE) = ? AND TERM_CDE = ?";
         Integer creditHour = queryInteger(con, sql, courseCode == null ? null : courseCode.toUpperCase(), term);
         if(creditHour == null) throw new Exception("Credit hours not found against course '" + courseCode + "' in term '" + term + "'");
         return creditHour;
@@ -447,7 +447,7 @@ public class Functions
 
     public static String ifBlocked(Connection con, String userName) throws Exception
     {
-        String sql = "SELECT MESSAGE FROM UCP.USER_BLOCK_LIST WHERE UPPER(USER_NME) = ?";
+        String sql = "SELECT MESSAGE FROM UMS.USER_BLOCK_LIST WHERE UPPER(USER_NME) = ?";
         String message = queryString(con, sql, userName == null ? null : userName.toUpperCase());
         return message == null ? "Blocked" : message;
     }
@@ -456,7 +456,7 @@ public class Functions
     {
         String sql =
             "SELECT G.COURSEID, C.COURSE_NME, G.GRADE " +
-            "FROM UCP.TERM T, UCP.COURSE C, ADMINISTRATOR.TRANSCRIPT G " +
+            "FROM UMS.TERM T, UMS.COURSE C, ADMINISTRATOR.TRANSCRIPT G " +
             "WHERE G.TERM = T.TERM_CDE " +
             "AND C.COURSE_CDE = G.COURSEID " +
             "AND G.REG = ? " +
@@ -486,7 +486,7 @@ public class Functions
 
     public static int getCreditHours(int sectionId, Connection con) throws Exception
     {
-        String sql = "SELECT C.CREDIT_HRS FROM UCP.COURSE C JOIN UCP.SECTION S ON S.COURSE_ID = C.COURSE_ID WHERE S.SECTION_ID = ?";
+        String sql = "SELECT C.CREDIT_HRS FROM UMS.COURSE C JOIN UMS.SECTION S ON S.COURSE_ID = C.COURSE_ID WHERE S.SECTION_ID = ?";
         Integer creditHour = queryInteger(con, sql, sectionId);
         if(creditHour == null) throw new Exception("Credit hours not found against SectionId " + sectionId);
         return creditHour;
@@ -494,12 +494,12 @@ public class Functions
 
     public static boolean validateIP(String ip, int placeId, Connection con) throws Exception
     {
-        return exists(con, "SELECT 1 FROM UCP.PLACE_IP WHERE IP_ADDRESS = ? AND PLACE_ID = ?", ip, placeId);
+        return exists(con, "SELECT 1 FROM UMS.PLACE_IP WHERE IP_ADDRESS = ? AND PLACE_ID = ?", ip, placeId);
     }
 
     public static boolean validateIP(String ip, Connection con) throws Exception
     {
-        return exists(con, "SELECT 1 FROM UCP.PLACE_IP WHERE IP_ADDRESS = ?", ip);
+        return exists(con, "SELECT 1 FROM UMS.PLACE_IP WHERE IP_ADDRESS = ?", ip);
     }
 
     public static String getEnviornmentValue(String var_nme, Connection con) throws Exception
@@ -605,15 +605,15 @@ public class Functions
     public static List getGradeCorrectionTerm(Connection con, String faculty, String courseCode, String userName) throws Exception
     {
         String sql =
-            "SELECT NVL(TERM_CDE, '-1') FROM UCP.TERM WHERE END_DTE = (" +
-            "SELECT MAX(T.END_DTE) FROM TERM T, ADMINISTRATOR.GRADES_ENTRY GE, UCP.STUDENT S, ADMINISTRATOR.PROGRAM P, UCP.PROGRAM PR, UCP.FACULTY F " +
+            "SELECT NVL(TERM_CDE, '-1') FROM UMS.TERM WHERE END_DTE = (" +
+            "SELECT MAX(T.END_DTE) FROM TERM T, ADMINISTRATOR.GRADES_ENTRY GE, UMS.STUDENT S, ADMINISTRATOR.PROGRAM P, UMS.PROGRAM PR, UMS.FACULTY F " +
             "WHERE T.TERM_CDE = GE.TERM AND GE.REG = S.REG_NBR AND S.PROG_CDE = P.MAJOR AND P.MAJOR = PR.PROG_CDE " +
             "AND F.FACULTY_ABBREV = ? AND F.FACULTY_ID = PR.FACULTY_ID) " +
-            "UNION SELECT T.TERM_CDE FROM UCP.TERM T, UCP.GRADE_CORR_TERM_ALLOCATION UTA, UCP.FACULTY F " +
+            "UNION SELECT T.TERM_CDE FROM UMS.TERM T, UMS.GRADE_CORR_TERM_ALLOCATION UTA, UMS.FACULTY F " +
             "WHERE T.TERM_CDE = UTA.TERM_CDE AND UTA.FRM_DTE <= SYSDATE AND UTA.TO_DTE >= SYSDATE " +
             "AND UPPER(UTA.USER_NME) = UPPER(?) AND UTA.FACULTY_ID = F.FACULTY_ID " +
             "AND UTA.FACULTY_ID = (SELECT FACULTY_ID FROM FACULTY WHERE FACULTY_ABBREV = ?) AND UTA.COURSE_CODE = ? " +
-            "UNION SELECT T.TERM_CDE FROM UCP.TERM T, UCP.GRADE_CORR_TERM_ALLOCATION UTA, UCP.FACULTY F " +
+            "UNION SELECT T.TERM_CDE FROM UMS.TERM T, UMS.GRADE_CORR_TERM_ALLOCATION UTA, UMS.FACULTY F " +
             "WHERE T.TERM_CDE = UTA.TERM_CDE AND UTA.FRM_DTE IS NULL AND UTA.TO_DTE IS NULL " +
             "AND UPPER(UTA.USER_NME) = UPPER(?) AND UTA.FACULTY_ID = F.FACULTY_ID " +
             "AND UTA.FACULTY_ID = (SELECT FACULTY_ID FROM FACULTY WHERE FACULTY_ABBREV = ?) AND UTA.COURSE_CODE = ?";
@@ -752,7 +752,7 @@ public class Functions
     {
         String detailSql =
             "SELECT O.TERM_CDE, U.UNI_CDE, P.PROG_ABBR, C.CMP_ID " +
-            "FROM OFFERED_PROGRAM O, PROGRAM P, CAMPUS C, UCP.UNIVERSITY U, FACULTY F " +
+            "FROM OFFERED_PROGRAM O, PROGRAM P, CAMPUS C, UMS.UNIVERSITY U, FACULTY F " +
             "WHERE P.PROG_ID = O.PROG_ID AND F.FACULTY_ID = P.FACULTY_ID AND U.UNI_ID = C.UNI_ID " +
             "AND C.CMP_ID = F.CMP_ID AND O.OP_ID = ?";
 
@@ -777,7 +777,7 @@ public class Functions
         String regSql =
             "SELECT A.REGSTR || NVL(B.REGNBR, '001') REGNBR FROM " +
             "(SELECT DISTINCT C.CMP_PREFIX || OP.TERM_CDE || U.UNI_CDE || P.PROG_ABBR REGSTR " +
-            "FROM PROGRAM P, FACULTY F, CAMPUS C, OFFERED_PROGRAM OP, UCP.UNIVERSITY U " +
+            "FROM PROGRAM P, FACULTY F, CAMPUS C, OFFERED_PROGRAM OP, UMS.UNIVERSITY U " +
             "WHERE U.UNI_ID = C.UNI_ID AND OP.PROG_ID = P.PROG_ID AND P.FACULTY_ID = F.FACULTY_ID " +
             "AND F.CMP_ID = C.CMP_ID AND P.PROG_ABBR = ? AND OP.TERM_CDE = ? AND C.CMP_ID = ?) A, " +
             "(SELECT LPAD(MAX(TO_NUMBER(SUBSTR(REG_NBR, LENGTH(REG_NBR)-2, LENGTH(REG_NBR)))) + 1, 3, '0') REGNBR " +
@@ -1414,10 +1414,10 @@ public class Functions
             "S.DOB_DTE, S.FATHER_NME, S.L_ADDRESS1_TXT, S.L_ADDRESS2_TXT, S.L_ADDRESS3_TXT, S.L_CITY_NME, S.L_PHONE_NBR, S.P_PHONE_NBR, " +
             "DECODE(S.GENDER_IND,'M','Male','F','Female',S.GENDER_IND) SEX, S.COURSE_PROG_ID, P.PROG_ID, NVL(S.NIC,'') NIC, " +
             "NVL(S.FATHER_NIC,'') FNIC, NVL(S.FATHER_NTN,'') FNTN, ADMINISTRATOR.NUTILITY.GET_CGPA(?) CGPA " +
-            "FROM UCP.STUDENT S, UCP.PROGRAM P, UCP.PROGRAM CP, UCP.BATCH B, UCP.REGISTRATION_SCHEDULE RS " +
+            "FROM UMS.STUDENT S, UMS.PROGRAM P, UMS.PROGRAM CP, UMS.BATCH B, UMS.REGISTRATION_SCHEDULE RS " +
             "WHERE S.REG_NBR = ? AND S.PROG_ID = P.PROG_ID AND P.PROG_ID = B.PROG_ID AND S.COURSE_PROG_ID = CP.PROG_ID " +
             "AND B.TERM_CDE = ? AND B.BATCH_ID = RS.BATCH_ID AND RS.REG_DTE = (" +
-            "SELECT MAX(REG_DTE) FROM UCP.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID)";
+            "SELECT MAX(REG_DTE) FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID)";
 
         List<Map<String, String>> data = new ArrayList<Map<String, String>>();
         String batchTerm = regNbr != null && regNbr.length() >= 5 ? regNbr.substring(2, 5) : "";
@@ -1534,7 +1534,7 @@ public class Functions
     {
         try
         {
-            String remarks = queryString(con, "SELECT REMARKS FROM UCP.DISCOUNT_ON_CGPA WHERE REG = ? AND TERM = ?", regNbr, termCde);
+            String remarks = queryString(con, "SELECT REMARKS FROM UMS.DISCOUNT_ON_CGPA WHERE REG = ? AND TERM = ?", regNbr, termCde);
             return remarks != null && !remarks.trim().isEmpty();
         }
         catch(Exception e)
@@ -1546,8 +1546,8 @@ public class Functions
     public static String getAdvanceTerm(String facId, Connection con)
     {
         String sql =
-            "SELECT TERM_CDE FROM UCP.TERM WHERE START_DTE = (SELECT MAX(START_DTE) FROM UCP.TERM WHERE START_DTE > " +
-            "(SELECT START_DTE FROM UCP.TERM WHERE TERM_CDE = (SELECT TERM_CDE FROM UCP.CURRENT_TERM WHERE FACULTY_ID = ?)))";
+            "SELECT TERM_CDE FROM UMS.TERM WHERE START_DTE = (SELECT MAX(START_DTE) FROM UMS.TERM WHERE START_DTE > " +
+            "(SELECT START_DTE FROM UMS.TERM WHERE TERM_CDE = (SELECT TERM_CDE FROM UMS.CURRENT_TERM WHERE FACULTY_ID = ?)))";
         try { return queryString(con, sql, facId); }
         catch(Exception e) { e.printStackTrace(); return null; }
     }
@@ -1584,7 +1584,7 @@ public class Functions
     {
         String[] sql =
         {
-            "UPDATE UCP.SECTION_STATUS SET STRENGTH = STRENGTH - 1 WHERE SECTION_ID IN (" +
+            "UPDATE UMS.SECTION_STATUS SET STRENGTH = STRENGTH - 1 WHERE SECTION_ID IN (" +
             "SELECT SECTION_ID FROM REGISTRATION WHERE REG_NBR = ? AND TERM_CDE = ? AND FEE_AMT = -1 AND EVENT_NBR = 2 AND STATUS_TYP = 'N')",
             "DELETE FROM REGISTRATION_REF WHERE REG_NBR = ? AND TERM_CDE = ?",
             "DELETE FROM REGISTRATION WHERE REG_NBR = ? AND TERM_CDE = ? AND FEE_AMT = -1 AND EVENT_NBR = 2 AND STATUS_TYP = 'N'"
@@ -1710,7 +1710,7 @@ public class Functions
     
     public static boolean isGraduateLineEntered(String regNbr, Connection con) throws Exception
     {
-        return exists(con, "SELECT 1 FROM UCP.DEGREE_COMPLETION WHERE REG = ?", regNbr);
+        return exists(con, "SELECT 1 FROM UMS.DEGREE_COMPLETION WHERE REG = ?", regNbr);
     }
     public static boolean checkDiscount(String regNbr, String term, String discTyp, Connection con) throws Exception
     {
@@ -1786,9 +1786,9 @@ public class Functions
         String sql =
             "SELECT 1 FROM DUAL WHERE EXISTS (SELECT 1 FROM DMC_CHALLAN WHERE REG_NBR = ? AND PAID_DTE IS NULL) " +
             "OR EXISTS (SELECT 1 FROM ACCOUNTS WHERE REG_NBR = ? AND PAID_DTE IS NULL) " +
-            "OR EXISTS (SELECT 1 FROM UCP.INSTALLMENT WHERE REG_NBR = ? AND PAIDDATE IS NULL) " +
-            "OR EXISTS (SELECT 1 FROM UCP.INSTALLMENT I WHERE I.REG_NBR = ? AND I.INSTNO IN (" +
-            "SELECT MAX(I2.INSTNO) FROM UCP.INSTALLMENT I2 WHERE I2.REG_NBR = I.REG_NBR AND I2.PAIDDATE IS NOT NULL AND I2.TERM_CDE = I.TERM_CDE) " +
+            "OR EXISTS (SELECT 1 FROM UMS.INSTALLMENT WHERE REG_NBR = ? AND PAIDDATE IS NULL) " +
+            "OR EXISTS (SELECT 1 FROM UMS.INSTALLMENT I WHERE I.REG_NBR = ? AND I.INSTNO IN (" +
+            "SELECT MAX(I2.INSTNO) FROM UMS.INSTALLMENT I2 WHERE I2.REG_NBR = I.REG_NBR AND I2.PAIDDATE IS NOT NULL AND I2.TERM_CDE = I.TERM_CDE) " +
             "AND I.RAMOUNT > 0)";
         return exists(con, sql, regNbr, regNbr, regNbr, regNbr);
     }
@@ -1834,9 +1834,9 @@ public class Functions
     public static boolean isClassLimitExceed(String facultyId, String sectionId, Connection con) throws Exception
     {
         String sql =
-            "SELECT 1 FROM UCP.CREDIT_LOAD_DEFINITION CLD, SECTION S, COURSE C " +
+            "SELECT 1 FROM UMS.CREDIT_LOAD_DEFINITION CLD, SECTION S, COURSE C " +
             "WHERE CLD.FACULTY_ID = ? AND CLD.CREDIT_HRS = C.CREDIT_HRS AND C.COURSE_ID = S.COURSE_ID " +
-            "AND S.SECTION_ID = ? AND CLD.CLASS_LIMIT <= (SELECT COUNT(*) FROM UCP.CLASS_HELD CH " +
+            "AND S.SECTION_ID = ? AND CLD.CLASS_LIMIT <= (SELECT COUNT(*) FROM UMS.CLASS_HELD CH " +
             "WHERE S.SECTION_ID = CH.SECTION_ID AND CH.CLASS_TYP <> 'U')";
         return exists(con, sql, facultyId, sectionId);
     }
@@ -1844,8 +1844,8 @@ public class Functions
     public static boolean sendSMS(String regNbr, String msg, LocalSession session) throws Exception
     {
         String mobileSql =
-            "SELECT SM.MOBILE_NBR, U.UNI_ID FROM STUDENT_MOBILE SM, UCP.STUDENT S, UCP.PROGRAM P, " +
-            "UCP.FACULTY F, UCP.CAMPUS C, UCP.UNIVERSITY U WHERE SM.REG_NBR = S.REG_NBR " +
+            "SELECT SM.MOBILE_NBR, U.UNI_ID FROM STUDENT_MOBILE SM, UMS.STUDENT S, UMS.PROGRAM P, " +
+            "UMS.FACULTY F, UMS.CAMPUS C, UMS.UNIVERSITY U WHERE SM.REG_NBR = S.REG_NBR " +
             "AND S.PROG_ID = P.PROG_ID AND P.FACULTY_ID = F.FACULTY_ID AND F.CMP_ID = C.CMP_ID " +
             "AND C.UNI_ID = U.UNI_ID AND SM.REG_NBR = ?";
         try(PreparedStatement selectStmt = session.con.prepareStatement(mobileSql))
@@ -1876,7 +1876,7 @@ public class Functions
     public static int getCourseFee1(String reg_Nbr, long courseId, Connection con) throws Exception
     {
         String batchFeeSql =
-            "SELECT BF.PER_COURSE_AMT FROM UCP.COURSE C, UCP.BATCH_FEE BF, UCP.BATCH B, UCP.PROGRAM P, UCP.STUDENT S " +
+            "SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C, UMS.BATCH_FEE BF, UMS.BATCH B, UMS.PROGRAM P, UMS.STUDENT S " +
             "WHERE C.CREDIT_HRS = BF.CREDIT_HRS AND BF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = P.PROG_ID " +
             "AND P.PROG_ID = S.PROG_ID AND S.REG_NBR = ? AND SUBSTR(S.REG_NBR, 3, 3) = B.TERM_CDE AND C.COURSE_ID = ?";
         Integer fee = queryInteger(con, batchFeeSql, reg_Nbr, courseId);
@@ -1890,7 +1890,7 @@ public class Functions
             "(SELECT PER_COURSE_AMT FROM BATCH B, PROGRAM P, REGISTRATION_SCHEDULE RS, STUDENT S " +
             "WHERE B.PROG_ID = P.PROG_ID AND S.REG_NBR = ? AND B.BATCH_ID = RS.BATCH_ID AND S.PROG_ID = P.PROG_ID " +
             "AND B.TERM_CDE = SUBSTR(S.REG_NBR, 3, 3) AND RS.REG_SCHED_ID = (SELECT MAX(REG_SCHED_ID) " +
-            "FROM UCP.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
+            "FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
         fee = queryInteger(con, fallbackSql, courseId, reg_Nbr, reg_Nbr);
         if(fee == null) throw new Exception("Fee not defined.");
         return fee;
@@ -1901,16 +1901,16 @@ public class Functions
         String term = reg_Nbr != null && reg_Nbr.length() >= 5 ? reg_Nbr.substring(2, 5) : "";
         String cmpPrefix = reg_Nbr != null && reg_Nbr.length() >= 2 ? reg_Nbr.substring(0, 2) : "";
         boolean hasTermFee = exists(con,
-            "SELECT 1 FROM UCP.BATCH_TERM_FEE BTF, UCP.BATCH B, UCP.STUDENT S " +
+            "SELECT 1 FROM UMS.BATCH_TERM_FEE BTF, UMS.BATCH B, UMS.STUDENT S " +
             "WHERE BTF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = S.PROG_ID AND S.REG_NBR = ? AND B.TERM_CDE = SUBSTR(S.REG_NBR,3,3)", reg_Nbr);
 
         if(hasTermFee)
         {
             String sql =
-                "SELECT X.PER_COURSE_AMT FROM (SELECT BF.PER_COURSE_AMT FROM UCP.COURSE C " +
-                "JOIN UCP.BATCH_TERM_FEE BF ON BF.CREDIT_HRS = C.CREDIT_HRS JOIN UCP.TERM T ON T.TERM_CDE = BF.TERM_CDE " +
-                "JOIN UCP.BATCH B ON B.BATCH_ID = BF.BATCH_ID JOIN UCP.PROGRAM P ON P.PROG_ID = B.PROG_ID " +
-                "JOIN UCP.STUDENT S ON S.PROG_ID = P.PROG_ID WHERE S.REG_NBR = ? AND B.TERM_CDE = ? AND C.COURSE_ID = ? " +
+                "SELECT X.PER_COURSE_AMT FROM (SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C " +
+                "JOIN UMS.BATCH_TERM_FEE BF ON BF.CREDIT_HRS = C.CREDIT_HRS JOIN UMS.TERM T ON T.TERM_CDE = BF.TERM_CDE " +
+                "JOIN UMS.BATCH B ON B.BATCH_ID = BF.BATCH_ID JOIN UMS.PROGRAM P ON P.PROG_ID = B.PROG_ID " +
+                "JOIN UMS.STUDENT S ON S.PROG_ID = P.PROG_ID WHERE S.REG_NBR = ? AND B.TERM_CDE = ? AND C.COURSE_ID = ? " +
                 "ORDER BY DECODE(BF.TERM_CDE, C.TERM_CDE, 1, 2), T.START_DTE DESC) X WHERE ROWNUM = 1";
             Integer fee = queryInteger(con, sql, reg_Nbr, term, courseId);
             if(fee != null) return fee;
@@ -1918,7 +1918,7 @@ public class Functions
         }
 
         Integer fee = queryInteger(con,
-            "SELECT BF.PER_COURSE_AMT FROM UCP.COURSE C, UCP.BATCH_FEE BF, UCP.BATCH B, UCP.PROGRAM P, UCP.STUDENT S " +
+            "SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C, UMS.BATCH_FEE BF, UMS.BATCH B, UMS.PROGRAM P, UMS.STUDENT S " +
             "WHERE C.CREDIT_HRS = BF.CREDIT_HRS AND BF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = P.PROG_ID AND P.PROG_ID = S.PROG_ID " +
             "AND S.REG_NBR = ? AND B.TERM_CDE = ? AND C.COURSE_ID = ?", reg_Nbr, term, courseId);
         if(fee != null) return fee;
@@ -1929,7 +1929,7 @@ public class Functions
             "AND P.PROG_ABBR = SF.PROG_ABBR AND SF.CMP_PREFIX = ? AND BATCH_TERM = ? AND PR.PROG_ID = P.PROG_ID), " +
             "(SELECT PER_COURSE_AMT FROM BATCH B, PROGRAM P, REGISTRATION_SCHEDULE RS, STUDENT S " +
             "WHERE B.PROG_ID = P.PROG_ID AND S.REG_NBR = ? AND B.BATCH_ID = RS.BATCH_ID AND S.PROG_ID = P.PROG_ID " +
-            "AND B.TERM_CDE = ? AND RS.REG_SCHED_ID = (SELECT MAX(REG_SCHED_ID) FROM UCP.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
+            "AND B.TERM_CDE = ? AND RS.REG_SCHED_ID = (SELECT MAX(REG_SCHED_ID) FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
         fee = queryInteger(con, fallbackSql, courseId, reg_Nbr, cmpPrefix, term, reg_Nbr, term);
         if(fee == null) throw new Exception("Fee not defined.");
         return fee;
@@ -1938,14 +1938,14 @@ public class Functions
     public static int getCourseFee(long candId, long courseId, Connection con) throws Exception
     {
         boolean hasTermFee = exists(con,
-            "SELECT 1 FROM UCP.BATCH_TERM_FEE BTF, UCP.BATCH B, UCP.OFFERED_PROGRAM OP, UCP.CANDIDATE C " +
+            "SELECT 1 FROM UMS.BATCH_TERM_FEE BTF, UMS.BATCH B, UMS.OFFERED_PROGRAM OP, UMS.CANDIDATE C " +
             "WHERE BTF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = OP.PROG_ID AND BTF.TERM_CDE = OP.TERM_CDE " +
             "AND B.TERM_CDE = OP.TERM_CDE AND C.OP_ID = OP.OP_ID AND C.CANDIDATE_ID = ?", candId);
 
         if(hasTermFee)
         {
             Integer fee = queryInteger(con,
-                "SELECT BF.PER_COURSE_AMT FROM UCP.COURSE C, UCP.BATCH_TERM_FEE BF, UCP.BATCH B, UCP.OFFERED_PROGRAM OP, UCP.CANDIDATE CAN " +
+                "SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C, UMS.BATCH_TERM_FEE BF, UMS.BATCH B, UMS.OFFERED_PROGRAM OP, UMS.CANDIDATE CAN " +
                 "WHERE C.CREDIT_HRS = BF.CREDIT_HRS AND BF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = OP.PROG_ID AND CAN.OP_ID = OP.OP_ID " +
                 "AND BF.TERM_CDE = C.TERM_CDE AND C.TERM_CDE = OP.TERM_CDE AND B.TERM_CDE = OP.TERM_CDE " +
                 "AND CAN.CANDIDATE_ID = ? AND C.COURSE_ID = ?", candId, courseId);
@@ -1954,19 +1954,19 @@ public class Functions
         }
 
         Integer fee = queryInteger(con,
-            "SELECT BF.PER_COURSE_AMT FROM UCP.COURSE C, UCP.BATCH_FEE BF, UCP.BATCH B, UCP.OFFERED_PROGRAM OP, UCP.CANDIDATE CAN " +
+            "SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C, UMS.BATCH_FEE BF, UMS.BATCH B, UMS.OFFERED_PROGRAM OP, UMS.CANDIDATE CAN " +
             "WHERE C.CREDIT_HRS = BF.CREDIT_HRS AND BF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = OP.PROG_ID AND CAN.OP_ID = OP.OP_ID " +
             "AND B.TERM_CDE = OP.TERM_CDE AND C.TERM_CDE = OP.TERM_CDE AND CAN.CANDIDATE_ID = ? AND C.COURSE_ID = ?", candId, courseId);
         if(fee != null) return fee;
 
         String fallbackSql =
-            "SELECT NVL((SELECT SF.FEE FROM UCP.PREREQ PR, UCP.PROGRAM P, UCP.SEMESTER_FEE SF, UCP.CANDIDATE CAN, UCP.OFFERED_PROGRAM OP " +
+            "SELECT NVL((SELECT SF.FEE FROM UMS.PREREQ PR, UMS.PROGRAM P, UMS.SEMESTER_FEE SF, UMS.CANDIDATE CAN, UMS.OFFERED_PROGRAM OP " +
             "WHERE PR.COURSE_ID = ? AND CAN.CANDIDATE_ID = ? AND CAN.OP_ID = OP.OP_ID AND OP.PROG_ID = P.PROG_ID " +
             "AND PR.COURSE_NBR = SF.SEMESTER AND P.PROG_ABBR = SF.PROG_ABBR AND PR.PROG_ID = P.PROG_ID), " +
-            "(SELECT PER_COURSE_AMT FROM UCP.BATCH B, UCP.PROGRAM P, UCP.REGISTRATION_SCHEDULE RS, UCP.CANDIDATE CAN, UCP.OFFERED_PROGRAM OP " +
+            "(SELECT PER_COURSE_AMT FROM UMS.BATCH B, UMS.PROGRAM P, UMS.REGISTRATION_SCHEDULE RS, UMS.CANDIDATE CAN, UMS.OFFERED_PROGRAM OP " +
             "WHERE B.PROG_ID = P.PROG_ID AND CAN.CANDIDATE_ID = ? AND B.BATCH_ID = RS.BATCH_ID AND CAN.OP_ID = OP.OP_ID " +
             "AND OP.PROG_ID = P.PROG_ID AND B.TERM_CDE = OP.TERM_CDE AND RS.REG_SCHED_ID = (SELECT MAX(REG_SCHED_ID) " +
-            "FROM UCP.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
+            "FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
         fee = queryInteger(con, fallbackSql, courseId, candId, candId);
         if(fee == null) throw new Exception("Fee not defined.");
         return fee;

@@ -106,7 +106,7 @@ public class Section
     {
         if(con == null) return false;
 
-        String sql = "SELECT 1 FROM UCP.TIME_TABLE WHERE SECTION_ID = ? AND ROWNUM = 1";
+        String sql = "SELECT 1 FROM UMS.TIME_TABLE WHERE SECTION_ID = ? AND ROWNUM = 1";
 
         try(PreparedStatement stmt = con.prepareStatement(sql))
         {
@@ -320,8 +320,8 @@ public class Section
 
         String sql =
             "SELECT P.PROG_CDE, P.PROG_ID " +
-            "FROM UCP.SECTION_PROGRAM SP " +
-            "JOIN UCP.PROGRAM P ON P.PROG_ID = SP.PROG_ID " +
+            "FROM UMS.SECTION_PROGRAM SP " +
+            "JOIN UMS.PROGRAM P ON P.PROG_ID = SP.PROG_ID " +
             "WHERE SP.SECTION_ID = ?";
 
         try(PreparedStatement stmt = con.prepareStatement(sql))

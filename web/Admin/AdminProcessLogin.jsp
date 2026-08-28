@@ -294,6 +294,8 @@
     private void auditLogin(jakarta.servlet.http.HttpServletRequest request, com.ums.db.Pool pool, String user, String message, boolean success) throws Exception 
     {
         Connection auditCon = null;
+
+
         try
         {
             auditCon = pool.getConnection();
