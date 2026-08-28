@@ -1,5 +1,5 @@
 <%@page import="com.ums.functions.Functions"%>
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,java.net.URLEncoder,java.util.Locale,jakarta.servlet.http.HttpSession"  session="true"   trimDirectiveWhitespaces="true" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,java.net.*,java.io.*,java.util.*,jakarta.servlet.http.HttpSession"  session="true"   trimDirectiveWhitespaces="true" %>
 <%!
     private void log(String message, String user)
     {
@@ -36,7 +36,6 @@
     {
         String ip = firstForwardedIp(request.getHeader("X-Forwarded-For"));
         if(isBlank(ip)) ip = nvl(request.getHeader("X-Real-IP"));
-        if(isBlank(ip)) ip = nvl(request.getParameter("publicIp"));
         if(isBlank(ip)) ip = nvl(request.getRemoteAddr());
         return ip;
     }
@@ -124,24 +123,124 @@
         return "Desktop";
     }
 
+    private String jsonValue(String json, String key)
+    {
+        if(json == null) return "";
+        String token = "\"" + key + "\"";
+        int pos = json.indexOf(token);
+        if(pos < 0) return "";
+        pos = json.indexOf(':', pos + token.length());
+        if(pos < 0) return "";
+        pos++;
+        while(pos < json.length() && Character.isWhitespace(json.charAt(pos))) pos++;
+        if(pos >= json.length()) return "";
+
+        if(json.charAt(pos) == '"')
+        {
+            pos++;
+            StringBuilder value = new StringBuilder();
+            boolean escaped = false;
+            while(pos < json.length())
+            {
+                char c = json.charAt(pos++);
+                if(escaped)
+                {
+                    value.append(c);
+                    escaped = false;
+                }
+                else if(c == '\\')
+                {
+                    escaped = true;
+                }
+                else if(c == '"')
+                {
+                    break;
+                }
+                else
+                {
+                    value.append(c);
+                }
+            }
+            return value.toString();
+        }
+
+        int end = json.indexOf(',', pos);
+        if(end < 0) end = json.indexOf('}', pos);
+        if(end < 0) end = json.length();
+        return json.substring(pos, end).trim();
+    }
+
+    private java.util.Map<String,String> getIpInfo(String ip)
+    {
+        java.util.Map<String,String> result = new java.util.HashMap<String,String>();
+        HttpURLConnection conn = null;
+        BufferedReader reader = null;
+
+        try
+        {
+            String token = "326c0bde1b1352";
+            String apiUrl = "https://api.ipinfo.io/lite/" + URLEncoder.encode(ip, "UTF-8") + "?token=" + URLEncoder.encode(token, "UTF-8");
+            URL url = new URL(apiUrl);
+            conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.setRequestProperty("Accept", "application/json");
+
+            int status = conn.getResponseCode();
+            InputStream stream = status >= 200 && status < 300 ? conn.getInputStream() : conn.getErrorStream();
+            reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+
+            StringBuilder json = new StringBuilder();
+            String line;
+            while((line = reader.readLine()) != null) json.append(line);
+
+            result.put("status", status >= 200 && status < 300 ? "SUCCESS" : "FAILED");
+            result.put("error", status >= 200 && status < 300 ? "" : "HTTP " + status);
+            result.put("ip", jsonValue(json.toString(), "ip"));
+            result.put("country", jsonValue(json.toString(), "country"));
+            result.put("asn", jsonValue(json.toString(), "asn"));
+            result.put("org", jsonValue(json.toString(), "as_name"));
+        }
+        catch(Exception e)
+        {
+            result.put("status", "FAILED");
+            result.put("error", e.toString());
+        }
+        finally
+        {
+            try { if(reader != null) reader.close(); } catch(Exception e) {}
+            if(conn != null) conn.disconnect();
+        }
+
+        return result;
+    }
+
     private void updateLog(jakarta.servlet.http.HttpServletRequest request, String user,String message, boolean success,Connection con) throws SQLException
     {
         String sql =
-            "INSERT INTO UCP.USER_LOG " +
+            "INSERT INTO UMS.USER_LOG " +
             "(USER_LOG_ID, TMS, USER_NME, PWD, " +
             " PUBLIC_IP, REMOTE_IP, X_FORWARD_IP, " +
             " BROWSER, WINDOWS, DEVICE, TIMEZONE, SCREEN, " +
             " CPU_CORE, RAM, GPU, NETWORK_TYPE, " +
             " COUNTRY, REGION, ISP, LOOKUP_ERROR) " +
             "VALUES " +
-            "(UCP.USER_LOG_SEQ.NEXTVAL, SYSTIMESTAMP, ?, ?, " +
+            "(UMS.USER_LOG_SEQ.NEXTVAL, SYSTIMESTAMP, ?, ?, " +
             " ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        String publicIp = nvl(request.getParameter("publicIp"));
         String remoteIp = nvl(request.getRemoteAddr());
         String forwardedIp = nvl(request.getHeader("X-Forwarded-For"));
+        String publicIp = firstForwardedIp(forwardedIp);
+        if(publicIp.length() == 0) publicIp = nvl(request.getHeader("X-Real-IP"));
+        if(publicIp.length() == 0) publicIp = remoteIp;
 
-        if(publicIp.length() == 0) publicIp = firstForwardedIp(forwardedIp);
+        java.util.Map<String,String> ipInfo = getIpInfo(publicIp);
+        String ipCountry = nvl(ipInfo.get("country"));
+        String ipAsn = nvl(ipInfo.get("asn"));
+        String ipOrg = nvl(ipInfo.get("org"));
+        String ipLookupStatus = nvl(ipInfo.get("status"));
+        String ipLookupError = nvl(ipInfo.get("error"));
         String userAgent = nvl(request.getParameter("browserUserAgent"));
         if(userAgent.length() == 0) userAgent = nvl(request.getHeader("User-Agent"));
         String browser = getBrowserName(userAgent);
@@ -156,9 +255,12 @@
         String rtt = nvl(request.getParameter("networkRtt"));
         if(downlink.length() > 0)  networkType += (networkType.length() == 0 ? "" : " ") + "DL:" + downlink;
         if(rtt.length() > 0) networkType += (networkType.length() == 0 ? "" : " ") + "RTT:" + rtt;
+        String browserId = nvl(request.getParameter("browserId"));
+        String device = getDeviceType(userAgent);
+        if(browserId.length() > 0) device += " ID:" + browserId;
+        String isp = ipOrg;
+        if(ipAsn.length() > 0) isp += (isp.length() == 0 ? "" : " ") + ipAsn;
         String auditMessage = (success ? "SUCCESS::" : "FAIL::") + nvl(message);
-        String ipLookupStatus = nvl(request.getParameter("ipLookupStatus"));
-        String ipLookupError = nvl(request.getParameter("ipLookupError"));
         if(ipLookupStatus.length() > 0 || ipLookupError.length() > 0)
         {
             auditMessage += " | IP_LOOKUP:" + ipLookupStatus + (ipLookupError.length() > 0 ? ":" + ipLookupError : "");
@@ -174,16 +276,16 @@
             pstmt.setString(i++, limit(forwardedIp, 100));
             pstmt.setString(i++, limit(browser, 200));
             pstmt.setString(i++, limit(getOperatingSystem(userAgent), 200));
-            pstmt.setString(i++, limit(getDeviceType(userAgent), 200));
+            pstmt.setString(i++, limit(device, 200));
             pstmt.setString(i++, limit(request.getParameter("timezone"), 50));
             pstmt.setString(i++, limit(screen, 10));
             pstmt.setString(i++, limit(request.getParameter("cpuCores"), 10));
             pstmt.setString(i++, limit(request.getParameter("deviceMemory"), 10));
             pstmt.setString(i++, limit(request.getParameter("gpuInfo"), 100));
             pstmt.setString(i++, limit(networkType, 100));
-            pstmt.setString(i++, limit(request.getParameter("ipCountry"), 100));
-            pstmt.setString(i++, limit(request.getParameter("ipRegion"), 100));
-            pstmt.setString(i++, limit(request.getParameter("ipOrg"), 100));
+            pstmt.setString(i++, limit(ipCountry, 100));
+            pstmt.setString(i++, "");
+            pstmt.setString(i++, limit(isp, 100));
             pstmt.setString(i++, limit(auditMessage, 500));
             pstmt.executeUpdate();
         }
@@ -296,7 +398,7 @@
         boolean blockedUser = false;
         String blockMessage = "";
 
-        String blockSql ="SELECT MESSAGE FROM UCP.USER_BLOCK_LIST WHERE UPPER(USER_NME) = ?";
+        String blockSql ="SELECT MESSAGE FROM UMS.USER_BLOCK_LIST WHERE UPPER(USER_NME) = ?";
         try(PreparedStatement ps = con.prepareStatement(blockSql))
         {
             ps.setString(1, user);
@@ -323,7 +425,7 @@
         boolean restrictedUser = false;
         boolean validIp = false;
 
-        String ipSql ="SELECT IP FROM UCP.WEB_USERS_IP WHERE UPPER(USER_NME) = ?";
+        String ipSql ="SELECT IP FROM UMS.WEB_USERS_IP WHERE UPPER(USER_NME) = ?";
         try(PreparedStatement ps = con.prepareStatement(ipSql))
         {
             ps.setString(1, user);
@@ -374,8 +476,8 @@
             "       REPLACE(T.CELL_NBR, '-', '') CELL_NBR, " +
             "       REPLACE(T.NIC, '-', '') NIC, " +
             "       T.EMAIL_TXT " +
-            "FROM UCP.WEB_USERS W " +
-            "JOIN UCP.TEACHER T ON T.TCHR_ID = W.TCHR_ID " +
+            "FROM UMS.WEB_USERS W " +
+            "JOIN UMS.TEACHER T ON T.TCHR_ID = W.TCHR_ID " +
             "WHERE UPPER(W.USER_NME) = ?";
 
         try(PreparedStatement ps = con.prepareStatement(facultySql))
@@ -400,8 +502,8 @@
                 "SELECT REPLACE(I.CELL_NBR, '-', '') CELL_NBR, " +
                 "       REPLACE(I.CNIC, '-', '') CNIC, " +
                 "       I.EMAIL_TXT " +
-                "FROM UCP.WEB_USERS W " +
-                "JOIN UCP.WEB_USERS_INFO I ON I.USER_NME = W.USER_NME " +
+                "FROM UMS.WEB_USERS W " +
+                "JOIN UMS.WEB_USERS_INFO I ON I.USER_NME = W.USER_NME " +
                 "WHERE UPPER(W.USER_NME) = ?";
 
             try(PreparedStatement ps = con.prepareStatement(adminInfoSql))
@@ -424,7 +526,7 @@
         if(profileFound)
         {
             if(cellNbr.length() != 11 || !cellNbr.startsWith("0")) cellWarning = "true";
-            if(email.length() == 0 ||!email.toLowerCase(Locale.ENGLISH).endsWith("@ucp.edu.pk")) emailWarning = "true";
+            if(email.length() == 0 ||!email.toLowerCase(Locale.ENGLISH).endsWith("@UMS.edu.pk")) emailWarning = "true";
             if(nic.length() != 13) nicWarning = "true";
         }
 %>
@@ -483,7 +585,7 @@
             "         ELSE 'NOT EXPIRED' " +
             "       END RESULT, " +
             "       TO_DATE(EXP_DTE, 'DD-MM-YYYY') - TRUNC(SYSDATE) DAYS " +
-            "FROM UCP.WEB_USERS " +
+            "FROM UMS.WEB_USERS " +
             "WHERE UPPER(USER_NME) = ?";
 
         try(PreparedStatement ps = con.prepareStatement(expirySql))
