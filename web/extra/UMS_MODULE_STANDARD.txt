@@ -1,0 +1,74 @@
+UMS MODULE STANDARD
+===================
+
+Purpose
+-------
+Use this structure for Term, City, and every future UMS Admin module. Do not copy shared CSS or JavaScript into JSP files.
+
+Required shared includes
+------------------------
+<link href="../extra/css/style.css" rel="stylesheet" type="text/css">
+<link href="../extra/css/ums-module.css" rel="stylesheet" type="text/css">
+<script src="../extra/js/ums-module.js"></script>
+
+Shared CSS responsibilities
+---------------------------
+style.css
+- Global UMS theme, variables, legacy application shell, common controls.
+
+ums-module.css
+- Module page/header/card/form layout.
+- Shared date-picker styling.
+- Shared data-table styling.
+- Search, sorting, pagination, export button, action links, status badges, flash messages.
+
+Shared JavaScript responsibilities
+----------------------------------
+ums-module.js
+- Read-only DD-MM-YYYY calendar/date-picker synchronization.
+- Flash-message auto hide.
+- data-ums-confirm confirmation links.
+- Generic table search.
+- Generic sortable headers (text, number, date).
+- Generic pagination and rows-per-page selector.
+- Excel-compatible UTF-8 CSV export.
+
+Module-specific JavaScript
+--------------------------
+Only business rules unique to a module belong in a module script.
+Example: term.js contains Term code/name/date generation and Term validation.
+For City, create city.js only if City has behavior that is not reusable by other modules.
+
+Reusable data table contract
+----------------------------
+1. Table:
+   id="cityTable" data-ums-table data-export-file="Cities"
+
+2. Search input:
+   data-ums-table-search="cityTable"
+
+3. Export button:
+   data-ums-table-export="cityTable"
+
+4. Sortable header:
+   class="ums-sortable" data-column="0" data-type="text"
+   Add data-export-header="City Code" to columns that should be exported.
+
+5. Optional cell values:
+   data-sort-value="..." for a clean sortable value.
+   data-export-value="..." for a clean export value.
+
+6. Pagination controls:
+   data-ums-page-size="cityTable"
+   data-ums-page-info="cityTable"
+   data-ums-page-prev="cityTable"
+   data-ums-page-numbers="cityTable"
+   data-ums-page-next="cityTable"
+
+Reusable confirmation contract
+------------------------------
+<a href="..." data-ums-confirm="Are you sure?">Delete</a>
+
+Java coding rule
+----------------
+Every Java statement must remain on one physical line. Never split a Java statement, SQL assignment, string concatenation, method call, declaration, or expression across multiple lines.

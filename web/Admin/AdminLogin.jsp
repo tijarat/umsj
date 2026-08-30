@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,com.ums.functions.Functions" errorPage="../error.jsp" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,com.ums.functions.Functions"%>
 
 <%!
     private String escapeHtml(String value) 
@@ -9,6 +9,13 @@
 %>
 
 <%
+    String servletPath = request.getServletPath();
+    String servletPathReal = application.getRealPath(servletPath);
+    String sep = servletPathReal.indexOf("\\") > 0 ? "\\" : "/";
+    String reportPath = servletPathReal.substring(0, servletPathReal.lastIndexOf(sep));
+    reportPath = reportPath.substring(0, reportPath.lastIndexOf(sep))+sep+"WEB-INF";
+    String rootPath = reportPath.substring(0, reportPath.lastIndexOf(sep));    
+    Functions.setpath(rootPath, sep);    
     String url = "http://" + Functions.getParameters("onlneurl");
     if (!response.isCommitted()) 
     {

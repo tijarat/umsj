@@ -1,0 +1,33 @@
+/* ========================================================================
+   UMS SHARED FLASH / STATUS MESSAGE
+   Reusable for all UMS modules
+   ======================================================================== */
+
+.ums-flash-message {
+    margin: -4px 0 16px;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-radius: var(--ums-radius);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    opacity: 1;
+    transition: opacity .25s ease, transform .25s ease;
+}
+
+.ums-flash-success {
+    color: var(--ums-success);
+    background: var(--ums-success-bg);
+    border-color: #bfe3cf;
+}
+
+.ums-flash-error {
+    color: var(--ums-danger);
+    background: var(--ums-danger-bg);
+    border-color: #efcbc7;
+}
+
+.ums-flash-hide {
+    opacity: 0;
+    transform: translateY(-4px);
+}

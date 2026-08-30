@@ -1,5 +1,6 @@
 package com.ums.packages;
 
+import com.ums.db.Pool;
 import com.ums.functions.Functions;
 import java.io.Serial;
 import java.io.Serializable;
@@ -20,7 +21,6 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public Connection con = null;
     public String user = "";
     public int sessionId;
     private final List<String> rights = new ArrayList<>();
@@ -28,7 +28,6 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
     public String workingTerm = "";
     public StudentContainer studentContainer = null;
     public int tchrId = -1;
-
     private String workingFaculty = "";
     private String workingFacultyId = "";
     private String ipAddress = "";
@@ -38,19 +37,18 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
     private int campusId = -1;
     private int uniId = -1;
 
-    public LocalSession() {}
+    public LocalSession(){}
 
-    public void start(Connection pCon, String pUser, Container container) throws Exception
+    public void start(Connection con, String pUser,String ipAddress, Container container) throws Exception
     {
-        con = pCon;
         user = pUser;
         this.container = container;
-        setWebCtx();
-        setRights();
-        setTeacherId();
+        setWebCtx(con,ipAddress);
+        setRights(con);
+        setTeacherId(con);
     }
 
-    public void setWebCtx() throws Exception
+    public void setWebCtx(Connection con,String ipAddress) throws Exception 
     {
         try(CallableStatement cs = con.prepareCall("{call SET_WEB_CTX(?, ?)}"))
         {
@@ -66,7 +64,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public void addUserSession(String ipAddress) throws SQLException
+    public void addUserSession(String ipAddress, Connection con) throws SQLException
     {
         this.ipAddress = ipAddress;
         try
@@ -152,7 +150,6 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
                     if(rs.next()) workingTerm = rs.getString(1);
                 }
             }
-
             sql =
                 "INSERT INTO UMS.USER_SESSION(USER_SESSION_ID, USER_NME, LOGIN_DTE, IP_ADDRESS) " +
                 "VALUES(?, ?, SYSDATE, ?)";
@@ -167,14 +164,16 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             con.commit();
         }catch(SQLException oops)
         {
-            rollbackQuietly();
+            rollbackQuietly(con);
             System.out.println("Error in LocalSession.addUserSession(String ipAddress)::" + oops.getMessage());
         }
     }
 
-    public void updateUserSession() throws SQLException
+    public void updateUserSession(Connection con) throws SQLException
     {
         String sql = "UPDATE UMS.USER_SESSION SET LOGOUT_DTE = SYSDATE WHERE USER_SESSION_ID = ?";
+        boolean oldAutoCommit = con.getAutoCommit();
+
         try
         {
             con.setAutoCommit(false);
@@ -186,12 +185,15 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             con.commit();
         }catch(SQLException oops)
         {
-            rollbackQuietly();
+            rollbackQuietly(con);
             System.out.println("Error in LocalSession.updateUserSession()::" + oops.getMessage());
+        }finally
+        {
+            con.setAutoCommit(oldAutoCommit);
         }
     }
 
-    public void addLog(String statement) throws SQLException
+    public void addLog(String statement, Connection con) throws SQLException
     {
         String sql =
             "INSERT INTO UMS.USER_SESSION_DETAIL " +
@@ -209,12 +211,12 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             con.commit();
         }catch(SQLException oops)
         {
-            rollbackQuietly();
+            rollbackQuietly(con);
             System.out.println("Error in LocalSession.addLog(String statement)::" + oops.getMessage());
         }
     }
 
-    public String processLog(String processId, String processNme, String processDesc, String id) throws Exception
+    public String processLog(String processId, String processNme, String processDesc, String id, Connection con) throws Exception
     {
         try
         {
@@ -247,7 +249,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             con.commit();
         }catch(Exception oops)
         {
-            rollbackQuietly();
+            rollbackQuietly(con);
             System.out.println("Error in LocalSession.processLog()::" + oops.getMessage());
         }
         return id;
@@ -268,12 +270,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
     
-    public List<String> getRights()
-    {
-        return Collections.unmodifiableList(rights);
-    }    
-
-    public void setRights() throws Exception
+    public void setRights(Connection con) throws Exception
     {
         rights.clear();
         String sql =
@@ -301,32 +298,30 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public boolean hasRightsOn(String privilege)
-    {
-        return rights != null && rights.contains(privilege);
-    }
-
     @Override
-    public void valueBound(HttpSessionBindingEvent e) {}
-
-    @Override
-    public void valueUnbound(HttpSessionBindingEvent e)
+    public void valueUnbound(HttpSessionBindingEvent event)
     {
+        Connection con = null;
+        Pool pool = null;
         try
         {
-            if(con != null && !con.isClosed()) updateUserSession();
-            if(container != null)
+            pool = (Pool) event.getSession().getServletContext().getAttribute("pool");
+            if(pool == null)
             {
-                container.removeUser(user);
-                if(studentContainer != null) container.removeUser(studentContainer.regNbr);
+                System.out.println("LocalSession.valueUnbound():: Pool not available");
+                return;
             }
-            if(con != null && !con.isClosed()) con.close();
-        }catch(SQLException oops)
+            con = pool.getConnection();
+            if(sessionId > 0) updateUserSession(con);
+        }catch(Exception e)
         {
-            System.out.println("LocalSession.valueUnbound()::" + oops.getMessage());
+            System.out.println("Error in valueUnbound()::" + e.getMessage());
+        }finally
+        {
+            if(con != null) pool.close(con); 
         }
     }
-
+       
     public void setWorkingFaculty(Connection con, String workingFaculty) throws Exception
     {
         setWorkingFacultyId(workingFaculty);
@@ -361,26 +356,22 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
             System.out.println("Error in LocalSession.setWorkingFaculty()::" + oops.getMessage());
         }
     }
-
-    public String getWorkingFaculty()
-    {
-        return workingFaculty;
-    }
-
-    public String getCampus()
-    {
-        return campus;
-    }
-
-    public int getCampusId()
-    {
-        return campusId;
-    }
-
-    public int getUniId()
-    {
-        return uniId;
-    }
+    
+    public List<String> getRights(){return Collections.unmodifiableList(rights);}    
+    public boolean hasRightsOn(String privilege){return rights != null && rights.contains(privilege);}
+    @Override
+    public void valueBound(HttpSessionBindingEvent e) {}
+    public String getWorkingFaculty(){return workingFaculty;}
+    public String getCampus(){return campus;}
+    public int getCampusId(){return campusId;}
+    public int getUniId(){return uniId;}
+    public void setIpAddress(String ipAddress){this.ipAddress = ipAddress;}
+    public String getIpAddress(){return ipAddress;}
+    public void setLoginDate(String loginDate){this.loginDate = loginDate;}
+    public String getLoginDate(){return loginDate; }
+    public int getTeacherId(){return teacherId;}
+    public String getWorkingFacultyId(){return workingFacultyId;}
+    public void setWorkingFacultyId(String workingFaculty) throws SQLException{workingFacultyId = workingFaculty;}
 
     public void setWorkingTerm(Connection con)
     {
@@ -399,7 +390,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public boolean hasPrivilegeOverStudent(String regNbr, String workingFacultyId) throws Exception
+    public boolean hasPrivilegeOverStudent(String regNbr, String workingFacultyId, Connection con) throws Exception
     {
         String sql =
             "SELECT F.FACULTY_ID " +
@@ -421,7 +412,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public boolean hasPrivileges(String regNbr, String webUser) throws Exception
+    public boolean hasPrivileges(String regNbr, String webUser, Connection con) throws Exception
     {
         String sql =
             "SELECT F.FACULTY_ID " +
@@ -443,70 +434,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public void setIpAddress(String ipAddress)
-    {
-        this.ipAddress = ipAddress;
-    }
-
-    public String getIpAddress()
-    {
-        return ipAddress;
-    }
-
-    public void setLoginDate(String loginDate)
-    {
-        this.loginDate = loginDate;
-    }
-
-    public String getLoginDate()
-    {
-        return loginDate;
-    }
-
-//    public void endClasses(LocalSession adminSession) throws SQLException
-//    {
-//        String sql =
-//            "SELECT H.CLASS_ID " +
-//            "FROM CLASS_HELD H, SLOT S " +
-//            "WHERE H.SLOT_ID = S.SLOT_ID " +
-//            "AND H.END_TIM IS NULL " +
-//            "AND H.STATUS_IND = 'E' " +
-//            "AND H.TCHR_ID = ? " +
-//            "AND (" +
-//            "CLASS_DTE < TO_CHAR(SYSDATE,'DD-MON-YYYY') " +
-//            "OR (" +
-//            "CLASS_DTE = TO_CHAR(SYSDATE,'DD-MON-YYYY') " +
-//            "AND TO_CHAR(SYSDATE,'HH24MI') > NVL((" +
-//            "SELECT END_TIME FROM ALTERNATE_SLOT_TIM " +
-//            "WHERE SLOT_ID = S.SLOT_ID " +
-//            "AND DAY_ID = (SELECT DAY_ID FROM DAY WHERE DAY_TXT = TRIM(TO_CHAR(SYSDATE,'DAY'))) " +
-//            "AND TO_DATE(START_DTE,'DD-MM-YY') <= TO_DATE(SYSDATE,'DD-MM-YY') " +
-//            "AND TO_DATE(END_DTE,'DD-MM-YY') >= TO_DATE(SYSDATE,'DD-MM-YY')" +
-//            "), END_TIME)" +
-//            ")" +
-//            ")";
-//
-//        try(PreparedStatement st = con.prepareStatement(sql))
-//        {
-//            st.setInt(1, getTeacherId());
-//            try(ResultSet rs = st.executeQuery())
-//            {
-//                AttendanceUtility attendanceUtility = new AttendanceUtility();
-//                while(rs.next())
-//                {
-//                    String classId = rs.getString("CLASS_ID");
-//                    attendanceUtility.endClass(true, classId, "T", adminSession);
-//                    System.out.println("CLASS_ID " + classId + " of user " + user + " automatically ended on session expire.");
-//                }
-//            }
-//        }catch(Exception oops)
-//        {
-//            System.out.println("Error in LocalSession.endClasses()::" + oops.getMessage());
-//        }
-//        System.out.println("EndAdvisorClass called");
-//    }
-
-    public void setTeacherId()
+    public void setTeacherId(Connection con)
     {
         String sql =
             "SELECT T.TCHR_ID " +
@@ -527,20 +455,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         }
     }
 
-    public int getTeacherId()
-    {
-        return teacherId;
-    }
 
-    public String getWorkingFacultyId()
-    {
-        return workingFacultyId;
-    }
-
-    public void setWorkingFacultyId(String workingFaculty) throws SQLException
-    {
-        workingFacultyId = workingFaculty;
-    }
 
     private void resetFacultyContext()
     {
@@ -552,7 +467,7 @@ public class LocalSession implements HttpSessionBindingListener, Serializable
         uniId = -1;
     }
 
-    private void rollbackQuietly()
+    private void rollbackQuietly(Connection con)
     {
         if(con == null) return;
         try

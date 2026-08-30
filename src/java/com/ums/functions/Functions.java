@@ -802,9 +802,9 @@ public class Functions
 
         String sql =
             "SELECT CASE " +
-            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-YYYY')) - TRUNC(SYSDATE) BETWEEN 1 AND ? THEN 'WARNING' " +
-            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-YYYY')) <= TRUNC(SYSDATE) THEN 'EXPIRED' " +
-            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-YYYY')) > TRUNC(SYSDATE) THEN 'NOT EXPIRED' END RESULT " +
+            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-RRRR')) - TRUNC(SYSDATE) BETWEEN 1 AND ? THEN 'WARNING' " +
+            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-RRRR')) <= TRUNC(SYSDATE) THEN 'EXPIRED' " +
+            "WHEN TRUNC(TO_DATE(EXP_DTE,'DD-MM-RRRR')) > TRUNC(SYSDATE) THEN 'NOT EXPIRED' END RESULT " +
             "FROM WEB_USERS WHERE USER_NME = ?";
         String status = queryString(con, sql, days, userName);
         return status == null ? "" : status;
@@ -1841,14 +1841,14 @@ public class Functions
         return exists(con, sql, facultyId, sectionId);
     }
     
-    public static boolean sendSMS(String regNbr, String msg, LocalSession session) throws Exception
+    public static boolean sendSMS(String regNbr, String msg, LocalSession session,Connection con) throws Exception
     {
         String mobileSql =
             "SELECT SM.MOBILE_NBR, U.UNI_ID FROM STUDENT_MOBILE SM, UMS.STUDENT S, UMS.PROGRAM P, " +
             "UMS.FACULTY F, UMS.CAMPUS C, UMS.UNIVERSITY U WHERE SM.REG_NBR = S.REG_NBR " +
             "AND S.PROG_ID = P.PROG_ID AND P.FACULTY_ID = F.FACULTY_ID AND F.CMP_ID = C.CMP_ID " +
             "AND C.UNI_ID = U.UNI_ID AND SM.REG_NBR = ?";
-        try(PreparedStatement selectStmt = session.con.prepareStatement(mobileSql))
+        try(PreparedStatement selectStmt = con.prepareStatement(mobileSql))
         {
             selectStmt.setString(1, regNbr);
             try(ResultSet rs = selectStmt.executeQuery())
@@ -1859,7 +1859,7 @@ public class Functions
                 String insertSql =
                     "INSERT INTO BULK_SMS(BULK_SMS_ID, MOBILE_NBR, SMS_MSG, STATUS_IND, TMS, USER_NME, SMS_TYP, MASK) " +
                     "VALUES(SEQ_BULK_SMS_ID.NEXTVAL, ?, ?, 'P', SYSDATE, ?, 'ABSENT', ?)";
-                try(PreparedStatement insertStmt = session.con.prepareStatement(insertSql))
+                try(PreparedStatement insertStmt = con.prepareStatement(insertSql))
                 {
                     bind(insertStmt, mobile, msg, session.user, mask);
                     return insertStmt.executeUpdate() > 0;
@@ -1870,30 +1870,6 @@ public class Functions
         {
             return false;
         }
-    }
-    
-    @Deprecated
-    public static int getCourseFee1(String reg_Nbr, long courseId, Connection con) throws Exception
-    {
-        String batchFeeSql =
-            "SELECT BF.PER_COURSE_AMT FROM UMS.COURSE C, UMS.BATCH_FEE BF, UMS.BATCH B, UMS.PROGRAM P, UMS.STUDENT S " +
-            "WHERE C.CREDIT_HRS = BF.CREDIT_HRS AND BF.BATCH_ID = B.BATCH_ID AND B.PROG_ID = P.PROG_ID " +
-            "AND P.PROG_ID = S.PROG_ID AND S.REG_NBR = ? AND SUBSTR(S.REG_NBR, 3, 3) = B.TERM_CDE AND C.COURSE_ID = ?";
-        Integer fee = queryInteger(con, batchFeeSql, reg_Nbr, courseId);
-        if(fee != null) return fee;
-
-        String fallbackSql =
-            "SELECT NVL((SELECT SF.FEE FROM PREREQ PR, PROGRAM P, SEMESTER_FEE SF, STUDENT S " +
-            "WHERE PR.COURSE_ID = ? AND PR.PROG_ID = S.PROG_ID AND S.REG_NBR = ? AND PR.COURSE_NBR = SF.SEMESTER " +
-            "AND P.PROG_ABBR = SF.PROG_ABBR AND SF.CMP_PREFIX = SUBSTR(S.REG_NBR, 1, 2) " +
-            "AND SUBSTR(S.REG_NBR, 3, 3) = BATCH_TERM AND PR.PROG_ID = P.PROG_ID), " +
-            "(SELECT PER_COURSE_AMT FROM BATCH B, PROGRAM P, REGISTRATION_SCHEDULE RS, STUDENT S " +
-            "WHERE B.PROG_ID = P.PROG_ID AND S.REG_NBR = ? AND B.BATCH_ID = RS.BATCH_ID AND S.PROG_ID = P.PROG_ID " +
-            "AND B.TERM_CDE = SUBSTR(S.REG_NBR, 3, 3) AND RS.REG_SCHED_ID = (SELECT MAX(REG_SCHED_ID) " +
-            "FROM UMS.REGISTRATION_SCHEDULE WHERE BATCH_ID = B.BATCH_ID))) FEE FROM DUAL";
-        fee = queryInteger(con, fallbackSql, courseId, reg_Nbr, reg_Nbr);
-        if(fee == null) throw new Exception("Fee not defined.");
-        return fee;
     }
     
     public static int getCourseFee(String reg_Nbr, long courseId, Connection con) throws Exception
@@ -1970,5 +1946,5 @@ public class Functions
         fee = queryInteger(con, fallbackSql, courseId, candId, candId);
         if(fee == null) throw new Exception("Fee not defined.");
         return fee;
-    }
+    } 
 }

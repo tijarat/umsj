@@ -1,6 +1,6 @@
-<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*,com.towertech.UMS.util.*" pageEncoding="UTF-8" %>
-<jsp:useBean id="pool" scope="application" class="com.towertech.UMS.DB.ConnectionPool"/>
-<jsp:useBean id="sections" scope="application" class="com.towertech.UMS.util.SectionContainer"/>
+<%@page import="com.ums.packages.StudentContainer"%>
+<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*,com.ums.packages.*" pageEncoding="UTF-8" errorPage="../error.jsp"%>
+<jsp:useBean id="pool" scope="application" class="com.ums.db.Pool"/>
 <%!
     public void log(String message, String user)
     {
@@ -14,8 +14,8 @@
     }
 %>
 <%
-    com.towertech.UMS.util.AdminSession adminSession = (com.towertech.UMS.util.AdminSession) session.getAttribute("adminSession");
-    if(adminSession == null || adminSession.con == null)
+    com.ums.packages.LocalSession adminSession =  (com.ums.packages.LocalSession) session.getAttribute("adminSession"); 
+    if(adminSession == null)
     {
         log("Session Not Found", "Invalid");
 %>
@@ -23,86 +23,68 @@
 <%
         return;
     }
-
+    Connection con = pool.getConnection();
     boolean isFaculty = Boolean.TRUE.equals(session.getAttribute("isFaculty"));
-    if("T".equalsIgnoreCase(request.getParameter("refresh")))
-    {
-        pool.resetBusyConnectionsSince(pool.getAllowedBusyMinutes());
-        pool.refresh();
-    }
 
     if("true".equalsIgnoreCase(request.getParameter("workingFacultyChanged")))
     {
-        StudentDetail studentDetail = (StudentDetail) session.getAttribute("currentStudent");
+        StudentContainer studentDetail = (StudentContainer) session.getAttribute("currentStudent");
         if(studentDetail != null)
         {
 %>
-            <jsp:useBean id="userContainer" scope="application" class="com.towertech.UMS.util.UserContainer"/>
-            <jsp:useBean id="adminSectionList" scope="session" class="com.towertech.UMS.util.AdminReserveSections"/>
-            <jsp:useBean id="AddDropAdminSectionList" scope="session" class="com.towertech.UMS.util.AdminAddDropReserveSections"/>
+            <jsp:useBean id="userContainer" scope="application" class="com.ums.packages.Container"/>
+            <jsp:useBean id="adminSectionList" scope="session" class="com.ums.packages.ReserveSection"/>
 <%
             userContainer.removeUser(studentDetail.regNbr);
             session.removeAttribute("currentStudent");
-            adminSectionList.removeAllSections();
-            AddDropAdminSectionList.removeAllSections();
         }
 
         String workingFaculty = request.getParameter("workingFaculty");
-        if(workingFaculty != null && !workingFaculty.trim().equals(""))  adminSession.setWorkingFaculty(adminSession.con, workingFaculty);
+        if(workingFaculty != null && !workingFaculty.trim().equals(""))  adminSession.setWorkingFaculty(con, workingFaculty);
     }
 
-    String currentTerm = pool.getCurrentTerm( adminSession.getWorkingFacultyId(), adminSession.con);
+    String currentTerm = pool.getCurrentTerm( adminSession.getWorkingFacultyId(), con);
     if(adminSession.hasRightsOn("Change Working Term") && "true".equalsIgnoreCase(request.getParameter("workingTermChanged")))
     {
         String workingTerm = request.getParameter("workingTerm");
-        if(workingTerm != null && !workingTerm.trim().equals(""))
-            adminSession.workingTerm = workingTerm;
-        StudentDetail studentDetail = (StudentDetail) session.getAttribute("currentStudent");
+        if(workingTerm != null && !workingTerm.trim().equals("")) adminSession.workingTerm = workingTerm;
+        StudentContainer studentDetail = (StudentContainer) session.getAttribute("currentStudent");
         if(studentDetail != null && (studentDetail.regNbr.length() == 13 || studentDetail.regNbr.length() == 12))
-            studentDetail.initStudentDetail(studentDetail.regNbr, studentDetail.password, currentTerm,  pool.getTentRegTerm(), adminSession.workingTerm, adminSession.con);
+            studentDetail.initStudentDetail(studentDetail.regNbr, studentDetail.password, currentTerm,  pool.getWorkingTerm(), adminSession.workingTerm, con);
     }
 
-    sections.populateSectionContainer(adminSession.con, currentTerm);
     String workingTerm = adminSession.workingTerm == null ? currentTerm : adminSession.workingTerm;
-    if(!currentTerm.equals(workingTerm))
-    {
-%>
-        <jsp:useBean id="workingSections" scope="application" class="com.towertech.UMS.util.SectionContainer"/>
-<%
-        workingSections.populateSectionContainer(adminSession.con, workingTerm);
-    }
-
     String notification = request.getParameter("notification");
     String changePasswordText = "Change Password";
 
     if(notification != null && !notification.trim().equals("") && !"null".equalsIgnoreCase(notification) && !"Change Password".equalsIgnoreCase(notification))
         changePasswordText = "Expires in " + notification + " day(s) - Change Password";
 %>
-<form name="form1" method="post" action="AdminHome.jsp" target="_top" class="ums-admin-topbar">
+<form name="form1" id="umsTopForm" method="post" action="AdminHome.jsp" target="_top">
     <input type="hidden" name="workingTermChanged" value="false">
     <input type="hidden" name="workingFacultyChanged" value="false">
-    <div class="ums-admin-topbar-brand">
-        <a href="AdminHome.jsp?refresh=T" target="_top" class="ums-admin-role-mark" title="Refresh UMS">
+    <div class="ums-top-brand">
+        <a href="AdminHome.jsp?refresh=T" target="_top" class="ums-top-home" title="Refresh UMS">
             <%=isFaculty ? "T" : "A"%>
         </a>
-        <div class="ums-admin-brand-text">
+        <div class="ums-top-brand-text">
             <strong>UMS Online</strong>
             <span><%=isFaculty ? "Teacher Services" : "Administrator Services"%></span>
         </div>
     </div>
-    <div class="ums-admin-context">
-        <div class="ums-admin-context-field ums-admin-faculty-field">
+    <div class="ums-top-context">
+        <div class="ums-top-field ums-top-faculty">
             <label for="workingFaculty">Working Faculty</label>
             <select id="workingFaculty" class="ums-working-faculty" name="workingFaculty" onchange="changeWorkingFaculty();">
 <%
                 String facultySql =
                     "SELECT F.FACULTY_ID, F.FACULTY_ABBREV, C.CMP_ABBERV, C.CMP_PREFIX, " +
-                    "C.FRANCHISE, U.UNI_ABBREV ABBR, CT.CITY_NAME " +
+                    "C.FRANCHISE, U.UNI_ABBREV ABBR, CT.SUB_CITY_NAME " +
                     "FROM WEB_USERS_FACULTY WUF " +
                     "JOIN FACULTY F ON F.FACULTY_ID = WUF.FACULTY_ID " +
                     "JOIN CAMPUS C ON C.CMP_ID = F.CMP_ID " +
                     "JOIN UMS.UNIVERSITY U ON U.UNI_ID = C.UNI_ID " +
-                    "JOIN UMS.CITY CT ON CT.CITY_ID = C.CITY_ID " +
+                    "JOIN UMS.SUB_CITY CT ON CT.SUB_CITY_ID = C.SUB_CITY_ID " +
                     "WHERE WUF.USER_NME = ? " +
                     "AND F.ACTIVE_STATUS = 'Y' " +
                     "ORDER BY C.CMP_ABBERV, U.UNI_ABBREV, F.FACULTY_ABBREV";
@@ -110,7 +92,7 @@
                 String previousCampus = null;
                 int campusGroup = -1;
 
-                try(PreparedStatement facultyStmt = adminSession.con.prepareStatement(facultySql))
+                try(PreparedStatement facultyStmt = con.prepareStatement(facultySql))
                 {
                     facultyStmt.setString(1, adminSession.user);
                     try(ResultSet facultyRs = facultyStmt.executeQuery())
@@ -125,7 +107,7 @@
                                 campusGroup++;
                             }
                             if(adminSession.getWorkingFaculty() == null || adminSession.getWorkingFaculty().trim().equals(""))
-                                adminSession.setWorkingFaculty(adminSession.con, facultyId);
+                                adminSession.setWorkingFaculty(con, facultyId);
                             boolean selected = facultyId.equals(adminSession.getWorkingFacultyId());
                             boolean primaryCampus = "N".equalsIgnoreCase(facultyRs.getString("FRANCHISE"));
 
@@ -134,7 +116,7 @@
                                 optionClass += " ums-faculty-option-alt";
                             if(primaryCampus)
                                 optionClass += " ums-faculty-option-primary";
-                            String optionText = facultyRs.getString("CMP_ABBERV") + "-" + facultyRs.getString("ABBR") + "(" + facultyRs.getString("CMP_PREFIX") + ") - " + facultyRs.getString("FACULTY_ABBREV") + " - " + facultyRs.getString("CITY_NAME");
+                            String optionText = facultyRs.getString("CMP_ABBERV") + "-" + facultyRs.getString("ABBR") + "(" + facultyRs.getString("CMP_PREFIX") + ") - " + facultyRs.getString("FACULTY_ABBREV") + " - " + facultyRs.getString("SUB_CITY_NAME");
 %>
                             <option value="<%=html(facultyId)%>" class="<%=optionClass%>"<%=selected ? "selected=\"selected\"" : ""%>><%=html(optionText)%></option>
 <%
@@ -149,7 +131,7 @@
         if(adminSession.hasRightsOn("Change Working Term"))
         {
 %>
-            <div class="ums-admin-context-field ums-admin-term-field">
+            <div class="ums-top-field ums-top-term">
                 <label for="workingTerm">Working Term</label>
                 <select id="workingTerm" name="workingTerm" onchange="changeWorkingTerm();">
 <%
@@ -175,7 +157,7 @@
                         "AND UPPER(UTA.USER_NME) = ? " +
                         "ORDER BY 1";
 
-                    try(PreparedStatement termStmt = adminSession.con.prepareStatement(termSql))
+                    try(PreparedStatement termStmt = con.prepareStatement(termSql))
                     {
                         termStmt.setString(1, adminSession.getWorkingFacultyId());
                         termStmt.setString(2, adminSession.getWorkingFacultyId());
@@ -198,18 +180,19 @@
             </div>
 <%
         }
+        pool.close(con);
 %>
-        <div class="ums-admin-current-term">
+        <div class="ums-top-current-term">
             <span>Current Term</span>
             <strong><%=html(currentTerm)%></strong>
         </div>
     </div>
-    <div class="ums-admin-top-actions">
+    <div class="ums-top-actions">
         <a href="../webDocs/UCPWeb_Documentation.htm" target="_blank" rel="noopener noreferrer">Help</a>
         <a href="AdminChangePass.jsp" target="mainFrame" class="<%=changePasswordText.startsWith("Expires") ? "ums-admin-password-warning" : ""%>">
             <%=html(changePasswordText)%>
         </a>
-        <a href="AdminLogoff.jsp" target="_parent" class="ums-admin-logoff">Log off <%=html(adminSession.user)%></a>
+        <a href="AdminLogoff.jsp" target="_parent" class="ums-top-logoff">Log off <%=html(adminSession.user)%></a>
     </div>
 </form>
 <script>

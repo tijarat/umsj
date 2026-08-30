@@ -11,6 +11,7 @@
     String servletPath = request.getServletPath();
     String servletPathReal = application.getRealPath(servletPath);
     String sep = servletPathReal.indexOf("\\") > 0 ? "\\" : "/";
+    
     String reportPath = servletPathReal.substring(0, servletPathReal.lastIndexOf(sep))+sep+"WEB-INF";
     String rootPath = reportPath.substring(0, reportPath.lastIndexOf(sep));    
     Functions.setpath(rootPath, sep);

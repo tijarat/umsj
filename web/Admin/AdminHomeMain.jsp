@@ -1,5 +1,6 @@
 <%@page import="com.ums.functions.Functions"%>
-<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*" pageEncoding="UTF-8" %>
+<jsp:useBean id="pool" scope="application" class="com.ums.db.Pool"/>
+<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.sql.*" pageEncoding="UTF-8" errorPage="../error.jsp"%>
 <%!
     public void log(String message, String user)
     {
@@ -14,7 +15,7 @@
 %>
 <%
     com.ums.packages.LocalSession adminSession =  (com.ums.packages.LocalSession) session.getAttribute("adminSession");
-    if(adminSession == null || adminSession.con == null)
+    if(adminSession == null)
     {
         log("Session Not Found", "Invalid");
 %>
@@ -28,7 +29,11 @@
     boolean cellWarning = "true".equalsIgnoreCase(request.getParameter("cellWarning"));
     boolean nicWarning = "true".equalsIgnoreCase(request.getParameter("nicWarning"));
     String notification = request.getParameter("notification");
-    String currentTerm = Functions.getCurrentTerm(adminSession.getWorkingFacultyId(),adminSession.con);
+
+    Connection con = pool.getConnection();
+
+    String currentTerm = Functions.getCurrentTerm(adminSession.getWorkingFacultyId(),con);
+
     String lastLoginDate = null;
     String lastLoginTime = null;
     String lastLoginIp = null;
@@ -43,7 +48,7 @@
         "WHERE LOGOUT_DTE IS NOT NULL " +
         "AND USER_NME = ?)";
 
-    try(PreparedStatement sessionStmt = adminSession.con.prepareStatement(sessionSql))
+    try(PreparedStatement sessionStmt = con.prepareStatement(sessionSql))
     {
         sessionStmt.setString(1, adminSession.user);
         try(ResultSet sessionRs = sessionStmt.executeQuery())
@@ -66,22 +71,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UMS Home</title>
-    <link href="../extra/css/style.css" rel="stylesheet" type="text/css">
+    <link href="../extra/css/style.css?v=20260829-2" rel="stylesheet" type="text/css">
 </head>
 <body class="ums-admin-main-body">
     <main class="ums-dashboard">
         <section class="ums-dashboard-status-grid">
             <div class="ums-dashboard-status">
                 <span>Working Faculty</span>
-                <strong><%=html(adminSession.getWorkingFaculty())%></strong>
+                <strong><%=html(adminSession.getWorkingFaculty())%>0</strong>
             </div>
             <div class="ums-dashboard-status">
                 <span>Current Term</span>
-                <strong><%=html(currentTerm)%></strong>
+                <strong><%=html(currentTerm)%>0</strong>
             </div>
             <div class="ums-dashboard-status">
                 <span>Working Term</span>
-                <strong><%=html(adminSession.workingTerm)%></strong>
+                <strong><%=html(adminSession.workingTerm)%>0</strong>
             </div>
         </section>
 <%
@@ -183,6 +188,7 @@
                 </div>
 <%
             }
+    pool.close(con);
 %>
         </section>
     </main>

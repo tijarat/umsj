@@ -8,7 +8,10 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.naming.NamingException;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
@@ -28,6 +31,7 @@ public class Pool implements AutoCloseable
     private String currentTerm = "";
     private String workingTerm = "";
     private boolean allowStdLogin = true;
+    private final ConcurrentHashMap<Connection, Long> connections = new ConcurrentHashMap<Connection, Long>();
 
     private DataSource ds;
 
@@ -141,7 +145,39 @@ public class Pool implements AutoCloseable
         }
     }
 
-    public Connection getConnection() throws SQLException{ return ds.getConnection();}
+    public Connection getConnection() throws SQLException
+    {
+        Connection con = ds.getConnection();
+        long openTime = System.currentTimeMillis();
+        connections.put(con, openTime);
+        System.out.print("Open Connection @ " + new java.util.Date(openTime)+ " :: ProxyID=" + System.identityHashCode(con)+ " :: " + con.toString() );
+        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+        for(int i = 2; i < stack.length && i < 3; i++)
+            System.out.println(":: " + stack[i]);
+        return con;
+    }
+    
+    public void close(Connection con)
+    { 
+        if(con == null) return;
+        try
+        {
+            long closeTime = System.currentTimeMillis();
+            Long openTime = connections.remove(con);
+            if(openTime != null)
+            {
+                long usedTime = closeTime - openTime.longValue();
+                System.out.println("Closing Connection @ " + new java.util.Date(closeTime)+ " :: ProxyID=" + System.identityHashCode(con) + " :: " + con.toString()+ " :: Opened At " + new java.util.Date(openTime) + " :: Used " + usedTime + " ms");
+            }else
+            {
+                System.out.println("Closing Connection NOT TRACKED" + " :: ProxyID=" + System.identityHashCode(con)+ " :: " + con.toString());
+            }
+            con.close();
+        }catch(SQLException e)
+        {
+            System.out.println("Error closing connection :: " + e.getMessage());
+        }
+    }    
 
     @Deprecated
     public String getCurrentTerm()
@@ -195,9 +231,11 @@ public class Pool implements AutoCloseable
         }
     }
 
-    public void returnConnection(Connection con) throws SQLException{ if(con != null && !con.isClosed()) con.close();}
-    public void release(){close();}
-
+    public void returnConnection(Connection con) throws SQLException
+    { 
+       close(con);
+    }
+    
     @Override
     public void close()
     {
@@ -247,9 +285,9 @@ public class Pool implements AutoCloseable
         properties.setUsername(userName);
         properties.setPassword(password);
         properties.setMaxActive(200);
-        properties.setInitialSize(10);
-        properties.setMinIdle(10);
-        properties.setMaxIdle(20);
+        properties.setInitialSize(1);
+        properties.setMinIdle(1);
+        properties.setMaxIdle(5);
         properties.setValidationQuery(VALIDATION_QUERY);
         properties.setTestOnBorrow(true);
         properties.setValidationInterval(30000);

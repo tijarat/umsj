@@ -1109,3 +1109,844 @@ div#bgStyle {
         font-size: 23px;
     }
 }
+
+
+/* ========================================================================
+   UMS ADMIN LAYOUT V2
+   Fixed desktop shell: header + sidebar + main frame.
+   ======================================================================== */
+
+html,
+body.ums-admin-home-body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body.ums-admin-home-body {
+    overflow: hidden;
+    background: #eef3f7;
+}
+
+#umsAdminPage {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-width: 900px;
+    overflow: hidden;
+    background: #eef3f7;
+}
+
+/* TOP */
+#umsAdminHeader {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 76px;
+    z-index: 20;
+    overflow: visible;
+    background: #0b355f;
+    border-bottom: 1px solid #082c4f;
+    box-shadow: 0 2px 8px rgba(8,44,79,.16);
+}
+
+#umsTopForm {
+    width: 100%;
+    height: 76px;
+    margin: 0;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+    background: linear-gradient(90deg, #082c4f 0%, #0f467b 65%, #155a97 100%);
+}
+
+.ums-top-brand {
+    width: 205px;
+    min-width: 205px;
+    display: flex;
+    align-items: center;
+}
+
+.ums-top-home {
+    width: 42px;
+    height: 42px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff !important;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.27);
+    border-radius: 7px;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none !important;
+}
+
+.ums-top-brand-text strong {
+    display: block;
+    color: #ffffff;
+    font-size: 17px;
+    line-height: 19px;
+}
+
+.ums-top-brand-text span {
+    display: block;
+    margin-top: 2px;
+    color: #d8e8f5;
+    font-size: 10px;
+}
+
+.ums-top-context {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+    padding: 0 14px;
+}
+
+.ums-top-field label {
+    display: block;
+    margin: 0 0 4px;
+    color: #dbeaf6;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ums-top-faculty {
+    width: 100%;
+    max-width: 570px;
+}
+
+.ums-top-term {
+    width: 110px;
+    min-width: 110px;
+}
+
+.ums-top-current-term {
+    width: 98px;
+    min-width: 98px;
+    height: 34px;
+    padding: 4px 8px;
+    color: #ffffff;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.20);
+    border-radius: 5px;
+}
+
+.ums-top-current-term span {
+    display: block;
+    color: #cfe2f2;
+    font-size: 8px;
+    line-height: 10px;
+    text-transform: uppercase;
+}
+
+.ums-top-current-term strong {
+    display: block;
+    margin-top: 2px;
+    color: #ffffff;
+    font-size: 11px;
+    line-height: 13px;
+}
+
+#umsTopForm select {
+    width: 100%;
+    height: 34px;
+    min-height: 34px;
+    padding: 4px 6px;
+    border: 1px solid #9db5ca;
+    border-radius: 5px;
+    background: #ffffff;
+    font-size: 11px;
+}
+
+.ums-top-actions {
+    min-width: 245px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.ums-top-actions a {
+    padding: 7px 8px;
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 5px;
+    background: rgba(255,255,255,.06);
+    font-size: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ums-top-actions a:hover {
+    color: #ffffff;
+    background: rgba(255,255,255,.15);
+    text-decoration: none;
+}
+
+.ums-top-actions .ums-top-password-warning {
+    color: #fff4c7;
+    border-color: rgba(255,220,120,.30);
+}
+
+.ums-top-actions .ums-top-logoff {
+    background: #9b2c27;
+    border-color: #b94a43;
+}
+
+.ums-top-actions .ums-top-logoff:hover {
+    background: #7f211d;
+}
+
+/* Select2 in top bar */
+#umsTopForm .select2-container {
+    width: 100% !important;
+}
+
+#umsTopForm .select2-container .select2-selection--single {
+    height: 34px !important;
+    min-height: 34px !important;
+    border: 1px solid #9db5ca !important;
+    border-radius: 5px !important;
+}
+
+#umsTopForm .select2-container--default .select2-selection--single .select2-selection__rendered {
+    height: 32px !important;
+    padding-left: 8px !important;
+    padding-right: 25px !important;
+    line-height: 32px !important;
+    color: #25384a !important;
+    font-size: 11px !important;
+}
+
+#umsTopForm .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 32px !important;
+}
+
+.select2-container--open {
+    z-index: 99999 !important;
+}
+
+/* BODY BELOW HEADER */
+#umsAdminBody {
+    position: absolute;
+    top: 76px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+/* LEFT */
+#umsAdminSidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 245px;
+    overflow: hidden;
+    background: #f7fafc;
+    border-right: 1px solid #c8d5e1;
+}
+
+#leftFrame {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+}
+
+/* MAIN */
+#umsAdminContent {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 245px;
+    overflow: hidden;
+    background: #f4f7fa;
+}
+
+#umsAdminBody.no-sidebar #umsAdminContent {
+    left: 0;
+}
+
+#mainFrame {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    background: #ffffff;
+}
+
+/* LEFT FRAME PAGE */
+html {
+    min-height: 100%;
+}
+
+body.ums-admin-nav-body {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #f7fafc;
+}
+
+.ums-admin-nav {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ums-admin-search {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #d7e2ec;
+}
+
+.ums-admin-search > label {
+    display: block;
+    margin: 0 0 5px;
+    color: #43586c;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ums-admin-search-row {
+    display: flex;
+    gap: 4px;
+}
+
+.ums-admin-search-row input[type="text"] {
+    width: calc(100% - 36px);
+    height: 30px;
+    min-height: 30px;
+    padding: 4px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.ums-admin-search-row button {
+    width: 32px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0;
+    border-radius: 4px;
+}
+
+.ums-menu-tree {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.ums-menu-group {
+    margin: 0 0 4px;
+    border: 1px solid #d6e1eb;
+    border-radius: 4px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.ums-menu-parent {
+    width: 100%;
+    min-height: 32px;
+    margin: 0;
+    padding: 6px 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #123f67;
+    background: #e9f2f9;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.ums-menu-parent:hover {
+    color: #082c4f;
+    background: #dbeaf6;
+    box-shadow: none !important;
+}
+
+.ums-menu-parent-icon {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: #1f6fb2;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.ums-menu-parent[aria-expanded="true"] {
+    background: #dcebf7;
+}
+
+.ums-menu-parent[aria-expanded="true"] .ums-menu-parent-icon {
+    font-size: 0;
+}
+
+.ums-menu-parent[aria-expanded="true"] .ums-menu-parent-icon:before {
+    content: "-";
+    font-size: 12px;
+}
+
+.ums-menu-children {
+    display: none;
+    padding: 3px 0;
+    background: #ffffff;
+}
+
+.ums-menu-children-open {
+    display: block;
+}
+
+.ums-menu-child {
+    padding: 5px 7px 5px 11px;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    color: #46596b;
+    border-left: 3px solid transparent;
+    font-size: 10.5px;
+    line-height: 1.3;
+    text-decoration: none;
+}
+
+.ums-menu-child:hover {
+    color: #0b355f;
+    background: #eef6fc;
+    border-left-color: #1f6fb2;
+    text-decoration: none;
+}
+
+.ums-menu-child-icon {
+    color: #1f6fb2;
+    font-size: 14px;
+    line-height: 12px;
+}
+
+/* MAIN HOME */
+body.ums-admin-main-body {
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #f4f7fa;
+}
+
+.ums-dashboard {
+    width: auto;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 20px 30px;
+}
+
+/* responsive desktop widths */
+@media (max-width: 1100px) {
+    #umsAdminPage {
+        min-width: 800px;
+    }
+
+    .ums-top-brand {
+        width: 175px;
+        min-width: 175px;
+    }
+
+    .ums-top-faculty {
+        max-width: 410px;
+    }
+
+    .ums-top-actions {
+        min-width: 205px;
+    }
+
+    .ums-top-actions a {
+        padding-left: 5px;
+        padding-right: 5px;
+        font-size: 9px;
+    }
+
+    #umsAdminSidebar {
+        width: 220px;
+    }
+
+    #umsAdminContent {
+        left: 220px;
+    }
+}
+
+/* ========================================================================
+   UMS LEFT MENU - ACTIVE PAGE
+   Reusable for all modules opened in mainFrame
+   ======================================================================== */
+
+.ums-menu-child-active,
+.ums-menu-child-active:hover {
+    color: #ffffff !important;
+    background: var(--ums-blue-700) !important;
+    border-left-color: var(--ums-blue-950) !important;
+    font-weight: 700;
+    text-decoration: none !important;
+}
+
+.ums-menu-child-active .ums-menu-child-icon {
+    color: #ffffff !important;
+}
+
+.ums-error-page {
+    width: min(900px, calc(100% - 36px));
+    margin: 0 auto;
+    padding: 40px 0;
+}
+
+.ums-error-card {
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--ums-border);
+    border-radius: var(--ums-radius);
+    box-shadow: var(--ums-shadow);
+}
+
+.ums-error-header {
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff7f6;
+    border-bottom: 1px solid #f0d4d1;
+}
+
+.ums-error-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: var(--ums-danger);
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.ums-error-eyebrow {
+    margin: 0 0 3px;
+    color: var(--ums-danger);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+}
+
+.ums-error-header h1 {
+    margin: 0;
+    color: #7e1f19;
+    font-size: 22px;
+}
+
+.ums-error-header p:not(.ums-error-eyebrow) {
+    margin: 5px 0 0;
+    color: var(--ums-text-soft);
+    font-size: 12px;
+}
+
+.ums-error-body {
+    padding: 22px 24px;
+}
+
+.ums-error-instructions {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    background: #f7fafc;
+    border: 1px solid var(--ums-border);
+    border-radius: 6px;
+}
+
+.ums-error-instructions h2 {
+    margin: 0 0 8px;
+    color: var(--ums-blue-900);
+    font-size: 13px;
+}
+
+.ums-error-instructions ol {
+    margin: 0;
+    padding-left: 20px;
+    color: #526172;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.ums-error-message {
+    overflow: hidden;
+    border: 1px solid #efcbc7;
+    border-radius: 6px;
+    background: var(--ums-danger-bg);
+}
+
+.ums-error-message-title {
+    padding: 7px 11px;
+    color: #ffffff;
+    background: var(--ums-danger);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ums-error-message-text {
+    padding: 12px 14px;
+    color: #8a1c16;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.ums-error-details {
+    margin-top: 12px;
+    border: 1px solid var(--ums-border);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.ums-error-details summary {
+    padding: 9px 12px;
+    color: var(--ums-blue-800);
+    background: #f7fbff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ums-error-details-content {
+    padding: 12px;
+    color: #5f6b7a;
+    background: #fbfcfd;
+    border-top: 1px solid var(--ums-border);
+    font-family: Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ums-error-actions {
+    margin-top: 18px;
+    padding-top: 14px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #e7edf3;
+}
+
+
+/* ========================================================================
+   UMS SESSION EXPIRED PAGE
+   ======================================================================== */
+
+.ums-session-expire-page {
+    min-height: 100vh;
+    padding: 35px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ums-surface-soft);
+}
+
+.ums-session-expire-card {
+    width: min(520px, 100%);
+    padding: 32px 30px;
+    background: #ffffff;
+    border: 1px solid var(--ums-border);
+    border-radius: var(--ums-radius);
+    box-shadow: var(--ums-shadow);
+    text-align: center;
+}
+
+.ums-session-expire-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: var(--ums-danger);
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.ums-session-expire-eyebrow {
+    margin: 0 0 5px;
+    color: var(--ums-danger);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.ums-session-expire-card h1 {
+    margin: 0;
+    color: var(--ums-blue-950);
+    font-size: 23px;
+    line-height: 1.25;
+}
+
+.ums-session-expire-description {
+    margin: 14px 0 0;
+    padding: 11px 13px;
+    color: #8a1c16;
+    background: var(--ums-danger-bg);
+    border: 1px solid #efcbc7;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.ums-session-expire-help {
+    margin: 14px 0 0;
+    color: var(--ums-text-soft);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.ums-session-expire-actions {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #e7edf3;
+}
+
+.ums-session-login-button {
+    min-height: 36px;
+    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff !important;
+    background: var(--ums-blue-700);
+    border: 1px solid var(--ums-blue-700);
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none !important;
+}
+
+.ums-session-login-button:hover {
+    color: #ffffff !important;
+    background: var(--ums-blue-900);
+    border-color: var(--ums-blue-900);
+    text-decoration: none !important;
+}
+
+@media (max-width: 560px) {
+    .ums-session-expire-card {
+        padding: 26px 20px;
+    }
+
+    .ums-session-expire-card h1 {
+        font-size: 20px;
+    }
+}
+
+/* ========================================================================
+   UMS SESSION EXPIRED PAGE
+   ======================================================================== */
+
+.ums-session-expire-page {
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 30px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ums-surface-soft);
+}
+
+.ums-session-expire-card {
+    width: 100%;
+    max-width: 520px;
+    box-sizing: border-box;
+    padding: 30px;
+    background: #ffffff;
+    border: 1px solid var(--ums-border);
+    border-radius: var(--ums-radius);
+    box-shadow: var(--ums-shadow);
+    text-align: center;
+}
+
+.ums-session-expire-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ums-danger);
+    color: #ffffff;
+    font-size: 27px;
+    font-weight: 800;
+}
+
+.ums-session-expire-eyebrow {
+    margin: 0 0 5px;
+    color: var(--ums-danger);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.ums-session-expire-card h1 {
+    margin: 0;
+    color: var(--ums-blue-950);
+    font-size: 23px;
+    line-height: 1.3;
+}
+
+.ums-session-expire-description {
+    margin-top: 15px;
+    padding: 11px 14px;
+    color: #991b1b;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.ums-session-expire-help {
+    margin: 15px 0 0;
+    color: var(--ums-text-soft);
+    font-size: 11px;
+    line-height: 18px;
+}
+

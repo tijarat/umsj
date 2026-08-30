@@ -1,5 +1,5 @@
 <%@page import="com.ums.functions.Functions"%>
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,java.net.*,java.io.*,java.util.*,jakarta.servlet.http.HttpSession"  session="true"   trimDirectiveWhitespaces="true" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,java.net.*,java.io.*,java.util.*,jakarta.servlet.http.HttpSession"  session="true" errorPage="../error.jsp"   trimDirectiveWhitespaces="true" %>
 <%!
     private void log(String message, String user)
     {
@@ -226,7 +226,7 @@
             " CPU_CORE, RAM, GPU, NETWORK_TYPE, " +
             " COUNTRY, REGION, ISP, LOOKUP_ERROR) " +
             "VALUES " +
-            "(UMS.USER_LOG_SEQ.NEXTVAL, SYSTIMESTAMP, ?, ?, " +
+            "(UMS.SEQ_USER_LOG_ID.NEXTVAL, SYSTIMESTAMP, ?, ?, " +
             " ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         String remoteIp = nvl(request.getRemoteAddr());
@@ -313,14 +313,8 @@
             log("Unable to save USER_LOG: " + e.getMessage(), user);
         }finally
         {
-            auditCon.close();
+            pool.close(auditCon);
         }
-    }
-
-    private void closeConnection(Connection con)  throws Exception 
-    {
-        if(con == null)  return;
-        con.close();
     }
 
     private void redirectLogin(jakarta.servlet.http.HttpServletResponse response,String message) throws java.io.IOException
@@ -418,7 +412,7 @@
         if(blockedUser)
         {
             auditLogin(request, pool, user, blockMessage, false);
-            closeConnection(con);
+            pool.close(con);
             redirectLogin(response, blockMessage);
             return;
         }
@@ -449,7 +443,7 @@
         if(restrictedUser && !validIp)
         {
             auditLogin(request, pool, user, "Not a valid access location", false );
-            closeConnection(con);
+            pool.close(con);
             redirectLogin(response, "Not a valid access location!");
             return;
         }
@@ -460,7 +454,7 @@
         {
             if(errorMessage.length() == 0) errorMessage = "Invalid User or Password";
             auditLogin(request, pool, user, errorMessage, false);
-            closeConnection(con);
+            pool.close(con);
             redirectLogin(response, errorMessage);
             return;
         }
@@ -534,13 +528,13 @@
 %>
         <jsp:useBean id="adminSession" scope="session" class="com.ums.packages.LocalSession"/>
 <%
-        adminSession.start(con, user, userContainer);
-        adminSession.addUserSession(accessIp);
+        adminSession.start(con, user,accessIp, userContainer);
+        adminSession.addUserSession(accessIp,con);
         adminSession.setIpAddress(accessIp);
         if(isBlank(adminSession.getWorkingFaculty()))
         {
             auditLogin(request,pool,user,"User does not have right on any faculty.",false );
-            closeConnection(con);
+            pool.close(con);
             try
             {
                 session.invalidate();
@@ -556,10 +550,10 @@
         session.setAttribute("isFaculty", Boolean.FALSE);
         if(isFaculty)
         {
-            session.setMaxInactiveInterval(60 * 30);
+            session.setMaxInactiveInterval(60 * 10);
             session.setAttribute("isFaculty", Boolean.TRUE);
         }else
-            session.setMaxInactiveInterval(60 * 30);
+            session.setMaxInactiveInterval(60 * 10);
 
         try
         {
@@ -579,9 +573,9 @@
         int warningDays = intValue( com.ums.functions.Functions.getEnviornmentValue("Passwords Expiry Warning Period",con),7);
         String expirySql =
             "SELECT CASE " +
-            "         WHEN TO_DATE(EXP_DTE, 'DD-MM-YYYY') <= TRUNC(SYSDATE) " +
+            "         WHEN TO_DATE(EXP_DTE, 'DD-MM-RRRR') <= TRUNC(SYSDATE) " +
             "           THEN 'EXPIRED' " +
-            "         WHEN TO_DATE(EXP_DTE, 'DD-MM-YYYY') - TRUNC(SYSDATE) " +
+            "         WHEN TO_DATE(EXP_DTE, 'DD-MM-RRRR') - TRUNC(SYSDATE) " +
             "              BETWEEN 1 AND ? " +
             "           THEN 'WARNING' " +
             "         ELSE 'NOT EXPIRED' " +
@@ -608,10 +602,19 @@
             log("Unable to determine password expiry: " + e.getMessage(), user);
         }
 
-        auditLogin(request, pool, user, "Login completed",true);
-        String homeUrl = "AdminHome.jsp" + "?emailWarning=" + URLEncoder.encode(emailWarning, "UTF-8") + "&cellWarning=" + URLEncoder.encode(cellWarning, "UTF-8") + "&nicWarning=" + URLEncoder.encode(nicWarning, "UTF-8");
-        if("EXPIRED".equalsIgnoreCase(expStatus)) homeUrl += "&notification=" + URLEncoder.encode("Change Password", "UTF-8");
-        else if("WARNING".equalsIgnoreCase(expStatus)) homeUrl += "&notification=" + URLEncoder.encode(remainDay, "UTF-8");
+        auditLogin(request, pool, user, "Login completed", true);
+
+        String homeUrl = "AdminHome.jsp"
+                + "?emailWarning=" + URLEncoder.encode(emailWarning, "UTF-8")
+                + "&cellWarning=" + URLEncoder.encode(cellWarning, "UTF-8")
+                + "&nicWarning=" + URLEncoder.encode(nicWarning, "UTF-8");
+
+        if("EXPIRED".equalsIgnoreCase(expStatus))
+            homeUrl += "&notification=" + URLEncoder.encode("Change Password", "UTF-8");
+        else if("WARNING".equalsIgnoreCase(expStatus))
+            homeUrl += "&notification=" + URLEncoder.encode(remainDay, "UTF-8");
+
+        pool.close(con);
         response.sendRedirect(homeUrl);
         return;
     }catch(Exception e)
@@ -626,8 +629,7 @@
         if(con != null)
         {
             if(!con.getAutoCommit()) con.rollback();
-            closeConnection(con);
-            con = null;
+            pool.close(con);
         }
         throw e;
     }

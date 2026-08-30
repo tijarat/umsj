@@ -354,21 +354,8 @@ public class StudentContainer
         return totalRegisteredCourses;
     }
 
-    @Deprecated
-    public int newStudentRegistration2(Connection con, String candId, String term, String discPer) throws Exception
+    public int updateNewRegistration(LocalSession session, String candId, String term, String discPer, Connection con) throws Exception
     {
-        return newStudentRegistration(con, candId, term, discPer);
-    }
-
-    @Deprecated
-    public int newStudentRegistration1(Connection con, String candId, String term, String discPer) throws Exception
-    {
-        return newStudentRegistration(con, candId, term, discPer);
-    }
-
-    public int updateNewRegistration(LocalSession session, String candId, String term, String discPer) throws Exception
-    {
-        Connection con = session.con;
         long candidateId = Long.parseLong(candId);
         double discountPercentage = parseDouble(discPer);
         int regularFee = queryInt(con, 0,

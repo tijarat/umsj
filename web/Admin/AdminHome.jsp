@@ -1,4 +1,5 @@
-<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.net.URLEncoder" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" language="java" import="java.net.URLEncoder" pageEncoding="UTF-8" errorPage="../error.jsp"%>
+<jsp:useBean id="pool" scope="application" class="com.ums.db.Pool"/>
 <%!
     public void log(String message, String user)
     {
@@ -6,8 +7,8 @@
     }
 %>
 <%
-    com.towertech.UMS.util.AdminSession adminSession = (com.towertech.UMS.util.AdminSession) session.getAttribute("adminSession");
-    if(adminSession == null || adminSession.con == null)
+    com.ums.packages.LocalSession adminSession =  (com.ums.packages.LocalSession) session.getAttribute("adminSession");
+    if(adminSession == null)
     {
         log("Session Not Found", "Invalid");
 %>
@@ -22,14 +23,14 @@
         response.setHeader("Expires", "0");
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     }
-
+    java.sql.Connection con =  con = pool.getConnection();
     String notification = "";
-    String expStatus = com.towertech.UMS.util.GlobalFunctions.passwordExpireStatus( adminSession.con, adminSession.user );
+    String expStatus = com.ums.functions.Functions.passwordExpireStatus(con, adminSession.user );
 
     if("EXPIRED".equalsIgnoreCase(expStatus))
         notification = "Change Password";
     else if("WARNING".equalsIgnoreCase(expStatus))
-        notification = com.towertech.UMS.util.GlobalFunctions.passwordExpireRemaningDays( adminSession.con, adminSession.user );
+        notification = com.ums.functions.Functions.passwordExpireRemaningDays(con, adminSession.user );
     String emailWarning = "true".equalsIgnoreCase(request.getParameter("emailWarning")) ? "true" : "false";
     String cellWarning = "true".equalsIgnoreCase(request.getParameter("cellWarning")) ? "true" : "false";
     String nicWarning = "true".equalsIgnoreCase(request.getParameter("nicWarning")) ? "true" : "false";
@@ -51,39 +52,45 @@
         <title>UMS Administration</title>
 
         <link href="../css/select2.min.css" rel="stylesheet" type="text/css">
-        <link href="../extra/css/style.css" rel="stylesheet" type="text/css">
+        <link href="../extra/css/style.css?v=20260829-2" rel="stylesheet" type="text/css">
 
         <script src="../js/jquery-3.6.0.min.js" type="text/javascript"></script>
         <script src="../js/select2.min.js" type="text/javascript"></script>
     </head>
     <body class="ums-admin-home-body">
-        <div class="ums-admin-shell">
-            <div class="ums-admin-top-section">
+        <div id="umsAdminPage">
+            <header id="umsAdminHeader">
                 <jsp:include page="AdminHomeTop.jsp">
                     <jsp:param name="notification" value="<%=notification%>"/>
                 </jsp:include>
-            </div>
-            <div class="ums-admin-workspace<%=passwordExpired ? " ums-admin-workspace-single" : ""%>">
+            </header>
+
+            <div id="umsAdminBody" class="<%=passwordExpired ? "no-sidebar" : ""%>">
 <%
             if(!passwordExpired)
             {
 %>
+                <aside id="umsAdminSidebar">
                     <iframe
                         name="leftFrame"
-                        class="ums-admin-nav-frame"
+                        id="leftFrame"
                         src="AdminHomeLeft.jsp"
-                        title="UMS Navigation">
-                    </iframe>
+                        frameborder="0"
+                        scrolling="no"
+                        title="UMS Navigation"></iframe>
+                </aside>
 <%
             }
+            pool.close(con);
 %>
-                <iframe
-                    name="mainFrame"
-                    id="mainFrame"
-                    class="ums-admin-main-frame"
-                    src="<%=mainFrameUrl%>"
-                    title="UMS Workspace">
-                </iframe>
+                <main id="umsAdminContent">
+                    <iframe
+                        name="mainFrame"
+                        id="mainFrame"
+                        src="<%=mainFrameUrl%>"
+                        frameborder="0"
+                        title="UMS Workspace"></iframe>
+                </main>
             </div>
         </div>
         <script>
