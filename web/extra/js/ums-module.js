@@ -204,10 +204,56 @@
         Array.prototype.forEach.call(tables, function(table) { if(table.id) new TableController(table); });
     };
 
+    UMS.initSearchSelects = function() {
+        var selects = document.querySelectorAll("select[data-ums-search-select]");
+        Array.prototype.forEach.call(selects, function(select) {
+            if(select.getAttribute("data-ums-search-ready") === "Y") return;
+            select.setAttribute("data-ums-search-ready", "Y");
+            var wrapper = document.createElement("div");
+            wrapper.className = "ums-search-select";
+            var input = document.createElement("input");
+            input.type = "search";
+            input.className = "ums-search-select-input";
+            input.autocomplete = "off";
+            input.placeholder = select.getAttribute("data-search-placeholder") || "Type to search...";
+            input.setAttribute("aria-label", select.getAttribute("data-search-label") || "Search options");
+            var list = document.createElement("div");
+            list.className = "ums-search-select-list";
+            list.setAttribute("role", "listbox");
+            select.parentNode.insertBefore(wrapper, select);
+            wrapper.appendChild(input);
+            wrapper.appendChild(list);
+            wrapper.appendChild(select);
+            select.classList.add("ums-search-select-native");
+            var options = Array.prototype.slice.call(select.options);
+            var activeIndex = -1;
+            function selectedText() { var option = select.options[select.selectedIndex]; return option && option.value ? option.textContent.trim() : ""; }
+            function closeList() { list.classList.remove("ums-search-select-open"); activeIndex = -1; }
+            function choose(option) { select.value = option.value; input.value = option.value ? option.textContent.trim() : ""; select.dispatchEvent(new Event("change", {bubbles:true})); closeList(); }
+            function render(filter) {
+                var term = (filter || "").trim().toLowerCase();
+                list.innerHTML = "";
+                var visible = options.filter(function(option) { return option.value && (!term || option.textContent.toLowerCase().indexOf(term) >= 0 || option.value.toLowerCase().indexOf(term) >= 0); });
+                visible.forEach(function(option, index) { var item = document.createElement("button"); item.type = "button"; item.className = "ums-search-select-option"; item.textContent = option.textContent.trim(); item.setAttribute("role", "option"); item.setAttribute("data-index", String(index)); if(option.value === select.value) item.classList.add("selected"); item.addEventListener("mousedown", function(event) { event.preventDefault(); choose(option); }); list.appendChild(item); });
+                if(!visible.length) { var empty = document.createElement("div"); empty.className = "ums-search-select-empty"; empty.textContent = "No matching option"; list.appendChild(empty); }
+                list.classList.add("ums-search-select-open");
+                activeIndex = -1;
+            }
+            function moveActive(direction) { var items = list.querySelectorAll(".ums-search-select-option"); if(!items.length) return; activeIndex += direction; if(activeIndex < 0) activeIndex = items.length - 1; if(activeIndex >= items.length) activeIndex = 0; Array.prototype.forEach.call(items, function(item) { item.classList.remove("active"); }); items[activeIndex].classList.add("active"); items[activeIndex].scrollIntoView({block:"nearest"}); }
+            input.value = selectedText();
+            input.addEventListener("focus", function() { input.select(); render(""); });
+            input.addEventListener("input", function() { render(input.value); });
+            input.addEventListener("keydown", function(event) { if(event.key === "ArrowDown") { event.preventDefault(); if(!list.classList.contains("ums-search-select-open")) render(input.value); moveActive(1); } else if(event.key === "ArrowUp") { event.preventDefault(); moveActive(-1); } else if(event.key === "Enter" && activeIndex >= 0) { event.preventDefault(); var items = list.querySelectorAll(".ums-search-select-option"); if(items[activeIndex]) items[activeIndex].dispatchEvent(new MouseEvent("mousedown", {bubbles:true})); } else if(event.key === "Escape") { closeList(); input.value = selectedText(); } });
+            input.addEventListener("blur", function() { window.setTimeout(function() { closeList(); input.value = selectedText(); }, 120); });
+            select.addEventListener("change", function() { input.value = selectedText(); });
+        });
+    };
+
     UMS.initModule = function() {
         UMS.initDatePickers();
         UMS.initFlashMessages();
         UMS.initConfirmActions();
+        UMS.initSearchSelects();
         UMS.initDataTables();
     };
 

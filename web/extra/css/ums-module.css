@@ -813,3 +813,18 @@
 .ums-field input[type="email"]:focus, .ums-field input[type="password"]:focus, .ums-field input[type="url"]:focus, .ums-field input[type="tel"]:focus { outline:none; border-color:#7097ba; box-shadow:0 0 0 2px rgba(69,114,157,.12); }
 .ums-status-active { color:#145c3d; background:#e8f7ef; border-color:#bfe3cf; }
 .ums-status-inactive { color:#8a3b28; background:#fff0ec; border-color:#efcbc7; }
+
+
+/* Shared searchable/type-to-filter select used by Working Term and future modules. */
+.ums-search-select { position:relative; width:100%; }
+.ums-search-select-native { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+.ums-search-select-input { width:100%; min-height:36px; box-sizing:border-box; border:1px solid #cbd6e0; border-radius:5px; background:#fff; color:#344054; padding:6px 30px 6px 9px; font-family:inherit; font-size:11px; outline:none; }
+.ums-search-select-input:focus { border-color:var(--ums-blue-500); box-shadow:0 0 0 2px rgba(41,128,185,.10); }
+.ums-search-select::after { content:"⌄"; position:absolute; top:8px; right:10px; color:#6b7b8c; font-size:14px; pointer-events:none; }
+.ums-search-select-list { display:none; position:absolute; z-index:1000; left:0; right:0; top:calc(100% + 3px); max-height:240px; overflow-y:auto; border:1px solid #cbd6e0; border-radius:6px; background:#fff; box-shadow:0 8px 24px rgba(28,55,80,.14); }
+.ums-search-select-list.ums-search-select-open { display:block; }
+.ums-search-select-option { width:100%; padding:8px 10px; border:0; border-bottom:1px solid #eef2f6; background:#fff; color:#344054; text-align:left; font:inherit; font-size:11px; cursor:pointer; }
+.ums-search-select-option:last-child { border-bottom:0; }
+.ums-search-select-option:hover, .ums-search-select-option.active { background:#eef6fc; color:#173d5c; }
+.ums-search-select-option.selected { font-weight:700; }
+.ums-search-select-empty { padding:9px 10px; color:#7b8794; font-size:11px; }

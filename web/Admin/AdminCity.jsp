@@ -1,116 +1,160 @@
-<%@ page contentType="text/html; charset=iso-8859-1" language="java" import="java.sql.*, java.util.*,com.towertech.ucp.util.*" session = "true" errorPage="../error.jsp" %>
-<%@ include file="../shared/nocache.inc"%>
-<%@ include file="../shared/findReplace.jsp"%>
-<jsp:useBean id="pool" scope="application" class="com.towertech.ucp.DB.ConnectionPool"/>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" language="java" import="java.sql.*,java.net.URLEncoder" session="true" errorPage="../error.jsp" %>
 <%!
-    public void log(String message,String user)
+    private void log(String message, String user)
+    { 
+        System.out.println(new java.util.Date() + "::AdminCity.jsp::" + user + "::" + message);
+    }
+    private String html(String value)
     {
-      System.out.println(new java.util.Date() + "::AdminCity.jsp::" + user + "::" + message);
+        if(value == null) return "";
+        return value.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;").replace("'","&#39;");
+    }
+    private String url(String value) throws Exception
+    {
+        return URLEncoder.encode(value == null ? "" : value, "UTF-8");
     }
 %>
 <%
-    int prmSectionId = -1;
-    String prmSectionTxt="";
-    com.towertech.ucp.util.AdminSession adminSession = (com.towertech.ucp.util.AdminSession)session.getAttribute("adminSession");
-    if(adminSession == null || adminSession.con == null)
+    com.ums.packages.LocalSession adminSession = (com.ums.packages.LocalSession)session.getAttribute("adminSession");
+    if(adminSession == null)
     {
-        log("Session Not Found","Invalid");
+        log("Session Not Found", "Invalid");
 %>
-		<jsp:forward page="../SessionExpire.jsp?des=Your Session/Connection closed please login again."/>		
+        <jsp:forward page="../SessionExpire.jsp?des=Your Session/Connection closed please login again."/>
 <%
+        return;
     }
-
     if(!adminSession.hasRightsOn("City"))
     {
 %>
-		<jsp:forward page="../UnauthorizedAdmin.jsp?des=You don't have privileges over City service." />
+        <jsp:forward page="../UnauthorizedAdmin.jsp?des=You don't have privileges over City service."/>
 <%
+        return;
     }
-%>
-<html>
-    <head>        
-        <title>Define City</title>
-        <script language="JavaScript" type="text/JavaScript"></script>
-        <link href="../Images/style.css" rel="stylesheet" type="text/css">
-        <script language="JavaScript" type="text/JavaScript">
-            <!--
-            function changeIt(elm)
-            {
-                if(parent.frames.length==0) return;
-                var obj = parent.frames.leftFrame.document.links;
-                for(ctr=0;ctr<obj.length;ctr++) 
-                    if(obj[ctr].href.indexOf(elm) > 0)
-                        obj[ctr].style.cssText = "color:#000000; text-decoration:underline; font-weight:bold";
-                    else
-                        obj[ctr].style.cssText = "color:#006699";
-             }
-             -->
-        </script>
-    </head>
-    <body onLoad="changeIt('AdminCity.jsp');">
-        <table width="100%" class="table_common" align="center" cellpadding="0" cellspacing="0">
-            <tr><th class="table_title" scope="col">Define City</th></tr>
-        </table>
-        <hr>
-        <table>
-            <tr><td class="normaltextboldRed" colspan="2"><%= nvl(request.getParameter("msg"))%></td></tr>
-        </table>
-        <form action="AdminProcessAddCity.jsp" method="post" name="cityForm" id="universityForm">
-<%
-    String msg= "",sql = "";
-    java.sql.Statement stmt = null;
+    com.ums.db.Pool pool = (com.ums.db.Pool)application.getAttribute("pool");
+    if(pool == null) throw new ServletException("Database pool is not initialized.");
+    response.setHeader("Pragma", "no-cache");
+    response.setHeader("Expires", "0");
+    response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    String flashType = (String)session.getAttribute("flashType");
+    String flashMessage = (String)session.getAttribute("flashMessage");
+    session.removeAttribute("flashType");
+    session.removeAttribute("flashMessage");
     Connection con = null;
-    java.sql.ResultSet rs = null;
-      
+    PreparedStatement cityStmt = null;
+    ResultSet cityRs = null;
     try
     {
-        con = adminSession.con;
-        msg= request.getParameter("msg");
-        stmt = con.createStatement();
-        con.setAutoCommit(false);
+        con = pool.getConnection();
+        cityStmt = con.prepareStatement("SELECT CITY_ID, CITY_NME FROM UMS.CITY ORDER BY CITY_NME");
+        cityRs = cityStmt.executeQuery();
 %>
-            <table width="60%" class="table_common" align="center">
-                
-                <tr>
-                    <td class="table_sub_title_bold">&nbsp; City Name*</td>
-                    <td class="record_cell_light"><input name="cityNme" onInvalid="this.setCustomValidity('Please enter Valid City Name. only character and . allowed');" oninput="setCustomValidity('')" pattern="[A-Za-z., ]{3,30}" required="required" type="text" id="cityNme" maxlength="30"/></td>                    
-                </tr>
-                <tr><td colspan="5"  align="center"><input type="submit" name="Submit" value="Add"></td></tr>
-            </table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Management</title>
+    <link href="../extra/css/style.css?v=20260831" rel="stylesheet" type="text/css">
+    <link href="../extra/css/ums-module.css?v=20260831" rel="stylesheet" type="text/css">
+</head>
+<body class="ums-admin-main-body">
+<main class="ums-module-page">
+    <section class="ums-module-header">
+        <div>
+            <p class="ums-module-eyebrow">General Setup</p>
+            <h1>City Management</h1>
+            <p>Create and maintain cities used throughout UMS.</p>
+        </div>
+    </section>
+
+    <section class="ums-module-card">
+        <div class="ums-module-card-header">
+            <h2>Define City</h2>
+            <span>* Required fields</span>
+        </div>
+        <form action="AdminProcessCity.jsp" method="post" name="cityForm" id="cityForm" class="ums-module-form">
+            <div class="ums-form-grid">
+                <div class="ums-field">
+                    <label for="cityId">City ID *</label>
+                    <input name="cityId" type="number" id="cityId" min="1" step="1" autocomplete="off" required>
+                    <small>Enter the numeric primary key for the city.</small>
+                </div>
+                <div class="ums-field">
+                    <label for="cityName">City Name *</label>
+                    <input name="cityName" type="text" id="cityName" maxlength="50" autocomplete="off" required>
+                </div>
+            </div>
+            <div class="ums-form-actions">
+                <button type="submit">Add City</button>
+            </div>
         </form>
-        <fieldset><legend class="table_title_small">Building</legend>
-            <div id="navbtns1" align="center"></div>
-            <table width="100%" border="0" align="center">
-                <tr class="table_sub_title_bold">
-                    <td>Sr.No</td>
-                    <td>City Name</td>
-                    <td colspan="2">Options</td>
-                </tr>
+    </section>
+
+<% if(flashMessage != null && flashMessage.trim().length() > 0) { %>
+    <div id="umsFlashMessage" class="ums-flash-message <%= "error".equals(flashType) ? "ums-flash-error" : "ums-flash-success" %>" role="alert"><%=html(flashMessage)%></div>
+<% } %>
+
+    <section class="ums-module-card">
+        <div class="ums-module-card-header ums-module-card-header-tools">
+            <div>
+                <h2>Cities</h2>
+                <span>All defined cities</span>
+            </div>
+            <div class="ums-table-tools">
+                <div class="ums-table-search">
+                    <label for="citySearch">Search</label>
+                    <input type="search" id="citySearch" data-ums-table-search="cityTable" placeholder="Search city ID or name" autocomplete="off">
+                </div>
+                <button type="button" class="ums-export-button" data-ums-table-export="cityTable" title="Export City list to Excel"><span class="ums-export-icon">⇩</span> Export to Excel</button>
+            </div>
+        </div>
+        <div class="ums-table-wrap">
+            <table class="ums-data-table" id="cityTable" data-ums-table data-export-file="Cities">
+                <thead>
+                    <tr>
+                        <th class="ums-sortable" data-column="0" data-type="number" data-export-header="City ID"><button type="button" class="ums-sort-button">City ID <span class="ums-sort-indicator">↕</span></button></th>
+                        <th class="ums-sortable" data-column="1" data-type="text" data-export-header="City Name"><button type="button" class="ums-sort-button">City Name <span class="ums-sort-indicator">↕</span></button></th>
+                        <th class="ums-actions-col">Options</th>
+                    </tr>
+                </thead>
+                <tbody>
 <%
-        sql =  "SELECT * FROM UCP.CITY_MASTER ORDER BY CITY_NAME ";
-        rs = stmt.executeQuery(sql);
-        int count = 1;
-        while (rs.next()) 
+        boolean found = false;
+        while(cityRs.next())
+        {
+            found = true;
+            String cityId = cityRs.getString("CITY_ID");
+            String cityName = cityRs.getString("CITY_NME");
+            String editUrl = "AdminEditCity.jsp?cityId=" + url(cityId);
+            String deleteUrl = "AdminProcessDeleteCity.jsp?cityId=" + url(cityId);
+%>
+                    <tr>
+                        <td data-sort-value="<%=html(cityId)%>"><%=html(cityId)%></td>
+                        <td><%=html(cityName)%></td>
+                        <td class="ums-row-actions" data-export-ignore="true"><a class="ums-action-link ums-action-edit" href="<%=editUrl%>">Edit</a><a class="ums-action-link ums-action-delete" href="<%=deleteUrl%>" data-ums-confirm="Delete city '<%=html(cityName)%>'?">Delete</a></td>
+                    </tr>
+<%      }
+        if(!found)
         {
 %>
-                <tr class="record_cell_light">
-                    <td  accept-charset="utf-8"><%= count++%></td>
-                    <td><%= rs.getString("CITY_NAME")%></td>
-                    <td width="5%"><a href="AdminEditCity.jsp?cityMasId=<%=rs.getString(1)%>&cityNme=<%=rs.getString(2)%>" class="body_links2">Edit</a></td>
-                    <td width="5%"><a href="AdminProcessDeleteCity.jsp?cityMasId=<%=rs.getString(1)%>" onClick="return confirm('Are you sure you want to delete?')" class="body_links2">Delete</a></td>
-<%        }
-%>                </tr>
+                    <tr data-ums-empty-row><td colspan="3" class="ums-table-empty">No cities are defined.</td></tr>
+<%      } %>
+                </tbody>
+            </table>
+        </div>
+        <div class="ums-table-footer" data-ums-table-footer="cityTable"></div>
+    </section>
+</main>
+<script src="../extra/js/ums-module.js?v=20260831"></script>
+</body>
+</html>
 <%
-    }catch(Exception exp)
+    }
+    finally
     {
-        throw new Exception(exp.getMessage());
-    }finally
-    {
-        if(rs != null) rs.close();
-        if(stmt != null) stmt.close();
+        if(cityRs != null) try { cityRs.close(); } catch(SQLException ignored) {}
+        if(cityStmt != null) try { cityStmt.close(); } catch(SQLException ignored) {}
+        pool.close(con);
     }
 %>
-            </table>
-        </fieldset>
-    </body>
-</html>
